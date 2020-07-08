@@ -36,7 +36,7 @@ class wireguard_clients():
     
     def list_all_clients(self):
         try:
-            self.cursor.execute("SELECT client_name FROM clients;")
+            self.cursor.execute("SELECT DISTINCT client_name FROM clients;")
             return self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
