@@ -9,7 +9,7 @@ class wireguard_ipam():
         try:
             self.cursor.execute("""
             INSERT INTO subnets (cidr_range, n_reserved_ips ) VALUES ( %s, %s )
-            ;""", (cidr_range, n_reserved_ips))
+            ;""", (cidr_range, n_reserved_ips,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -20,7 +20,7 @@ class wireguard_ipam():
     def delete_subnet(self, cidr_range):
         try:
             self.cursor.execute("""
-            DELETE FROM subnets WHERE subnets.cidr_range =  %s;""", (cidr_range))
+            DELETE FROM subnets WHERE subnets.cidr_range =  %s;""", (cidr_range,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -32,7 +32,7 @@ class wireguard_ipam():
         try:
             self.cursor.execute("""
             UPDATE subnets SET serverID = %s WHERE subnets.cidr_range = %s
-            ;""", (serverID, cidr_range))
+            ;""", (serverID, cidr_range,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -48,7 +48,7 @@ class wireguard_ipam():
         intaddr = int.from_bytes(ipaddr.packed, "big")
 
         try:
-            self.cursor.execute("INSERT INTO leases (cidr_range, clientID, ip_address) VALUES ( %s, %s, %s);", (wg_servers_cidr, clientID, intaddr))
+            self.cursor.execute("INSERT INTO leases (cidr_range, clientID, ip_address) VALUES ( %s, %s, %s);", (wg_servers_cidr, clientID, intaddr,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()

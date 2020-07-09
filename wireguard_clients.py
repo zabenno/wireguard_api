@@ -9,7 +9,7 @@ class wireguard_clients():
         try:
             self.cursor.execute("""
             INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s)
-            ;""", (client_name, public_key, wg_server))
+            ;""", (client_name, public_key, wg_server,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
