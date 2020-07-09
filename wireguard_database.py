@@ -41,11 +41,34 @@ class Wireguard_database():
             CREATE TABLE clients (
                 clientID serial PRIMARY KEY,
                 client_name VARCHAR (20),
-                ip_address VARCHAR (15) UNIQUE,
                 public_key VARCHAR (40) UNIQUE,
                 serverID VARCHAR (20),
                 CONSTRAINT clients_serverID_fkey FOREIGN KEY (serverID) 
                 REFERENCES wg_servers (serverID) MATCH SIMPLE
+            );
+            """)
+            self.db_connection.commit()
+            self.cursor.execute("""
+            CREATE TABLE subnets (
+                subnetID serial PRIMARY KEY,
+                cidr_range VARCHAR (18) UNIQUE,
+                n_reserved_ips INT,
+                serverID VARCHAR (20),
+                CONSTRAINT subnets_serverID_fkey FOREIGN KEY (serverID) 
+                REFERENCES wg_servers (serverID) MATCH SIMPLE
+            );
+            """)
+            self.db_connection.commit()
+            self.cursor.execute("""
+            CREATE TABLE leases (
+                leaseID serial PRIMARY KEY,
+                cidr_range VARCHAR (18),
+                clientID serial UNIQUE,
+                ip_address INT,
+                CONSTRAINT leases_clientID_fkey FOREIGN KEY (clientID) 
+                REFERENCES clients (clientID) MATCH SIMPLE,
+                CONSTRAINT leases_cidr_range_fkey FOREIGN KEY (cidr_range) 
+                REFERENCES subnets (cidr_range) MATCH SIMPLE
             );
             """)
             self.db_connection.commit()

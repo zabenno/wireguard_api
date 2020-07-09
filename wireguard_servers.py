@@ -1,15 +1,15 @@
-import psycopg2
+import psycopg2, ipaddress
 
 class wireguard_servers():
     def __init__(self, database, cursor):
         self.db_connection = database
         self.cursor = cursor
     
-    def create_wg_server(self, server_name, public_key, ip_address, wg_ip_range, wg_ip_address):
+    def create_wg_server(self, server_name, public_key, ip_address, wg_ip_address):
         try:
             self.cursor.execute("""
-            INSERT INTO wg_servers (serverID, public_key, ip_address, wg_ip_range, wg_ip_address) VALUES ( %s, %s, %s, %s, %s)
-            """, (server_name, public_key, ip_address, wg_ip_range, wg_ip_address))
+            INSERT INTO wg_servers (serverID, public_key, ip_address, wg_ip_address) VALUES ( %s, %s, %s, %s)
+            """, (server_name, public_key, ip_address, wg_ip_address))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -42,8 +42,13 @@ class wireguard_servers():
             print("Error: Could not pull server list from database: ", error)
     
     def retrieve_servers_client_details(self, wg_server):
+        parsed_conf = {}
         try:
-            self.cursor.execute("SELECT client_name, public_key, ip_address FROM clients WHERE clients.serverID = %s;", (wg_server,))
-            return self.cursor.fetchall()
+            self.cursor.execute("SELECT clients.client_name, clients.public_key, leases.ip_address FROM leases INNER JOIN clients ON clients.clientID = leases.clientID WHERE clients.serverID = %s;", (wg_server,))
+            clients_conf = self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error: Failed to retrieve clients for {wg_server}: ", error)
+        for client in clients_conf:
+            parsed_ip = str(ipaddress.ip_address(client[2]))
+            parsed_conf[client[0]] = [client[1], parsed_ip]
+        return parsed_conf

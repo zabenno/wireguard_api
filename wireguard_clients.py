@@ -5,11 +5,11 @@ class wireguard_clients():
         self.db_connection = database
         self.cursor = cursor
     
-    def create_wg_client(self, client_name, wg_server, public_key, wg_ip_address):
+    def create_wg_client(self, client_name, wg_server, public_key):
         try:
             self.cursor.execute("""
-            INSERT INTO clients (client_name, public_key, ip_address, serverID) VALUES ( %s, %s, %s, %s)
-            ;""", (client_name, public_key, wg_ip_address, wg_server))
+            INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s)
+            ;""", (client_name, public_key, wg_server))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -29,7 +29,7 @@ class wireguard_clients():
     
     def retrieve_client_config(self, wg_client):
         try:
-            self.cursor.execute("SELECT ip_address, public_key FROM clients WHERE clients.client_name = %s;", (wg_client,))
+            self.cursor.execute("SELECT serverID, public_key FROM clients WHERE clients.client_name = %s;", (wg_client,))
             return self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error: Failed to retrieve configuration for client {wg_client}: ", error)
