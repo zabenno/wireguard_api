@@ -1,10 +1,42 @@
 import psycopg2
 
 class Wireguard_database():
+    """
+    Connects to, validates, and formats (if needed) a postgres database to be used by wireguard api components.
+
+    Attributes
+    ----------
+    db_connection : psycopg2.extensions.connection
+        The connection to the postgres database.
+    db_cursor : psycopg2.extensions.cursor
+        psycopg2 used for issuing commands to the database.
+
+    Methods
+    -------
+    validate_database()
+        Checks for a valid Postgres database that already store context.
+    format_database()
+        Called to create the tables required when conencting to an empty database.
+    """
     def __init__(self, db_server="127.0.0.1", db_port="5432", db_database="postgres", db_user="postgres", db_password="changeme123"):
+        """
+        Parameters
+        ----------
+        db_server : str
+            The location of the postgres database. (default is 127.0.0.1)
+        db_port : str
+            The port to connect to the database on (default is 5432)
+        db_database : str
+            The name of the database (default is postgres)
+        db_user : str
+            The user to connect to the database (default is postgres)
+        db_password : str
+            The password for the user connecting to the database (default is changeme123)
+        """
         try:
             self.db_connection = psycopg2.connect(host = db_server, database = db_database, port = db_port, user = db_user, password = db_password)
             self.cursor = self.db_connection.cursor()
+            print(type(self.cursor))
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Unable to connect to database, failed with error: ", error)
         else:
@@ -15,6 +47,9 @@ class Wireguard_database():
             print("Debug: Found tables within database.")
 
     def validate_database(self):
+        """ Performs a very basic check on the data base of existing content. 
+        If any tables are found, database is assumed valid.
+        """
         try:
             self.cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
             if len(self.cursor.fetchall()) != 0:
