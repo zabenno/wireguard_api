@@ -183,12 +183,13 @@ class Wireguard_database():
 
     def assign_lease(self, client_name, server_name):
         ip_address = self.get_next_ip(server_name)
+        int_ip = self.ip_to_int(ip_address)
         try:
             self.cursor.execute("""
             INSERT INTO leases (subnetID, clientID, ip_address) VALUES (
             (SELECT subnetID FROM subnets WHERE serverID = %s),
             (SELECT clientID FROM clients WHERE client_name = %s),
-            %s );""", (server_name, client_name, ip_address,))
+            %s );""", (server_name, client_name, int_ip,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -197,7 +198,6 @@ class Wireguard_database():
             print(f"Debug: Successfully added client: {client_name}.")
 
     def get_next_ip(self, server_name):
-        next_ip = ""
         try:
             self.cursor.execute("""SELECT leases.ip_address FROM subnets INNER JOIN leases ON subnets.subnetID = leases.subnetID 
             WHERE subnets.serverID = %s;""", (server_name,))
@@ -207,14 +207,20 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error: Failed to retrieve details of subnet for client {server_name}: ", error)
         subnet = ipaddress.ip_network(f"{network_address}/{network_mask}")
+        
+        #If it's the first lease to be given out
+        if len(taken_ips) == 0:
+            return subnet[n_reserved_ips + 1]
+
         for ipaddr in subnet.hosts():
-            if not(ipaddr in taken_ips) and ipaddr > subnet[n_reserved_ips]:
-                next_ip = ipaddr
-                break
-        print(str(next_ip))
-        if len(str(next_ip)) == 0:
+            for ip in taken_ips:
+                if ipaddr != ipaddress.IPv4Address(int(ip[0])) and ipaddr > subnet[n_reserved_ips]:
+                    return ipaddr
+    
+    def ip_to_int(self, ip):
+        if len(str(ip)) == 0:
             raise Exception("Error: Server out of leases")
-        ipaddr = ipaddress.ip_address(next_ip)
+        ipaddr = ipaddress.ip_address(ip)
         intaddr = int.from_bytes(ipaddr.packed, "big")
         return intaddr
 
@@ -225,11 +231,76 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
 
-test = Wireguard_database()
-print(test.list_clients())
+    def list_leases(self):
+        try:
+            self.cursor.execute("SELECT * FROM leases;")
+            return self.cursor.fetchall()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull client list from database: ", error)
+
+    def get_client_id(self, client_name, server_name):
+        try:
+            self.cursor.execute("SELECT clientID FROM clients WHERE client_name = %s AND serverID = %s;", (client_name, server_name,))
+            return self.cursor.fetchone()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull client list from database: ", error)
+    
+    def get_subent_id(self, server_name):
+        try:
+            self.cursor.execute("SELECT subnetID FROM subnets WHERE serverID = %s;", (server_name,))
+            return self.cursor.fetchone()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull client list from database: ", error)
+
+    def get_client_config(self, client_name, server_name):
+        clientID = self.get_client_id(client_name, server_name)
+        try:
+            self.cursor.execute("""SELECT public_key, endpoint_address, endpoint_port 
+            FROM servers WHERE serverID = %s;""", (server_name,))
+            server_details = self.cursor.fetchone()
+            self.cursor.execute("""SELECT subnets.allowed_ips, leases.ip_address 
+            FROM subnets
+            INNER JOIN leases ON leases.subnetID = subnets.subnetID
+            WHERE leases.clientID = %s;""", (clientID,))
+            subnet_details = self.cursor.fetchone()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull client details from database: ", error)
+        server_details = {"public_key": server_details[0], "endpoint_address": server_details[1], "endpoint_port": server_details[2]}
+        subnet_details = {"allowed_ips": subnet_details[0], "lease": subnet_details[1]}
+        response = {"server": server_details, "subnet": subnet_details}
+        return response
+
+    def get_server_config(self, server_name):
+        subnetID = self.get_subent_id(server_name)
+        response = {}
+        try:
+            self.cursor.execute("""SELECT clients.clientID, clients.public_key, leases.ip_address 
+            FROM clients
+            INNER JOIN leases ON clients.clientID = leases.clientID WHERE subnetID = %s;""", (subnetID,))
+            clients = self.cursor.fetchall()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull client list from database: ", error)
+        for client in clients:
+            response[client[0]] = {"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}
+        print(response)
+
+
+#test = Wireguard_database()
 #test.delete_client("testclient1")
-test.create_server("wireguard01", "192.168.2.0", 24, "SSHHUUBBWW", "192.168.2.55", 5128, 20)
+#test.create_server("wireguard01", "192.168.2.0", 24, "SSHHUUBBWW", "192.168.2.55", 5128, 20)
 #test.create_server("wireguard02", "192.168.1.0", 24, "SSHHUUBfBWW", "192.168.2.55", 5128, 20)
-test.create_client("testclient1", "wireguard01", "JJIINNPPSS")
-test.delete_client("testclient1")
-test.assign_lease("testclient1", "wireguard01")
+##test.create_client("testclient1", "wireguard02", "JJIINNPkhPSS")
+#test.assign_lease("testclient1", "wireguard02")
+#print(test.list_clients())
+
+#test.delete_client("testclient1")
+#test.create_client("testclient2", "wireguard01", "JJIIYYNNPPSS")
+#test.assign_lease("testclient2", "wireguard01")
+#test.create_client("testclient3", "wireguard01", "JJIIYYNNPfPSS")
+#test.assign_lease("testclient3", "wireguard01")
+#print(test.list_clients())
+#test.create_client("testclient1", "wireguard01", "JJIINNPPSS")
+#test.assign_lease("testclient1", "wireguard01")
+#print(test.list_leases())
+#test.get_client_config("testclient3", "wireguard01")
+#test.get_server_config("wireguard02")
