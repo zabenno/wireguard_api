@@ -282,4 +282,4 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
         for client in clients:
             response[client[0]] = {"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}
-        print(response)
+        return response
