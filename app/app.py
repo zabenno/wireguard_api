@@ -1,7 +1,15 @@
 from flask import Flask, jsonify, render_template, request
 from wireguard_db import Wireguard_database
+from waitress import serve
+import os
 
-test = Wireguard_database()
+server = os.environ.get('DBSERVER')
+port = os.environ.get('DBPORT')
+database = os.environ.get('DATABASE')
+user = os.environ.get('DBUSER')
+password = os.environ.get('DBPASSWORD')
+
+test = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=user,db_password=password)
 
 app = Flask(__name__)
 
@@ -79,4 +87,5 @@ def remove_peer():
         return f"Failed to remove peer {content['client_name']} from {content['server_name']} server.", 500
 
 if __name__ == "__main__":
-    app.run(debug=1)
+    serve(app, host="0.0.0.0", port=5000)
+#    app.run(debug=1)

@@ -36,7 +36,6 @@ class Wireguard_database():
         try:
             self.db_connection = psycopg2.connect(host = db_server, database = db_database, port = db_port, user = db_user, password = db_password)
             self.cursor = self.db_connection.cursor()
-            print(type(self.cursor))
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Unable to connect to database, failed with error: ", error)
         else:
