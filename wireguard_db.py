@@ -278,7 +278,7 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client details from database: ", error)
         server_details = {"public_key": server_details[0], "endpoint_address": server_details[1], "endpoint_port": server_details[2]}
-        subnet_details = {"allowed_ips": subnet_details[0], "lease": subnet_details[1]}
+        subnet_details = {"allowed_ips": subnet_details[0], "lease": str(ipaddress.IPv4Address(int(subnet_details[1])))}
         response = {"server": server_details, "subnet": subnet_details}
         return response
 
