@@ -123,9 +123,11 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             print(f"Error: Could not add server {server_name}: ", error)
+            raise Exception("Could not create server.")
         else:
             print(f"Debug: Successfully added server: {server_name}.")
         self.create_subnet(server_name, network_address, network_mask, n_reserved_ips)
+        return True
 
     def delete_server(self, server_name):
         try:
@@ -146,8 +148,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             print(f"Error: Could not add subnet for {server_name}: ", error)
+            raise Exception("Could not create subnet.")
         else:
             print(f"Debug: Successfully added subnet: {network_address}/{network_mask}.")
+            return True
 
     def create_client(self, client_name, server_name, public_key):
         try:
@@ -231,6 +235,13 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
 
+    def list_servers(self):
+        try:
+            self.cursor.execute("SELECT * FROM servers;")
+            return self.cursor.fetchall()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull server list from database: ", error)
+
     def list_leases(self):
         try:
             self.cursor.execute("SELECT * FROM leases;")
@@ -245,7 +256,7 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
     
-    def get_subent_id(self, server_name):
+    def get_subnet_id(self, server_name):
         try:
             self.cursor.execute("SELECT subnetID FROM subnets WHERE serverID = %s;", (server_name,))
             return self.cursor.fetchone()
@@ -271,7 +282,7 @@ class Wireguard_database():
         return response
 
     def get_server_config(self, server_name):
-        subnetID = self.get_subent_id(server_name)
+        subnetID = self.get_subnet_id(server_name)
         response = {}
         try:
             self.cursor.execute("""SELECT clients.clientID, clients.public_key, leases.ip_address 
@@ -280,6 +291,8 @@ class Wireguard_database():
             clients = self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
+            raise Exception("Could not retrieve config for server.")
+            return False
         for client in clients:
             response[client[0]] = {"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}
         return response
