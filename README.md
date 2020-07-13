@@ -1,5 +1,34 @@
 # wireguard_api
-A REST API server to manage clients and servers peering.
+A REST API server to broker connections between clients and servers.
+
+## Overview
+The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. This project could be greatly expanded and has a decent amount of assumptions.
+
+Warnings: 
+* Currently this project does not support any type of authentication meaning anyone with access to the API can do anything.
+* TLS is not handled by this app so a proxy is a must.
+
+Technical goals:
+* All state is offloaded to a Postgres database.
+* Dockerised.
+* HTTPS to be done via proxy.
+
+## Design Descisions
+### Pull From Server
+Updates to a WireGuard servers client list will be done via a pull from the server. This is because the intention of this API is for it to be used in conjuction with the wg-tools package, specifically the `wg syncconf` command, to avoid disrupting existing client connections when adding a new client. As the documentation for this command says it is "much less efficient" I have assumed it would be best to do this on a time interval basis, e.g. every 30 seconds, to avoid refreshing the client list for every new client addition/deletion.
+
+### Clients
+A client should be thought of as a single entity, consisting of one or multiple peerings.
+
+Client assumptions:
+* A client can be peered to multiple servers but can only have one concurrent peering to any server.
+* If a client is deleted by name all instances of peering are also deleted.
+* A client must have a peering instance to exist.
+* A client will be directly requesting the API for changes to itself.
+
+### Security
+Currently the project assumes that authentication and encryption will be dealt with either via a proxy or not required.
+
 ## Warning: WIP
 This is a work in progress, expect further documentation and changes to follow. These changes will include database changes.
 
@@ -36,8 +65,8 @@ HTTP: 200
 }
 ```
 HTTP: 500
-HTTP: 404
 
+HTTP: 404
 ### /api/v1/client/config/
 This call is to pull down the configuration of a specified client-server peer.
 #### Call Content
