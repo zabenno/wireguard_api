@@ -117,7 +117,7 @@ HTTP: 200
         "public_key": "BBAACCDDEEFF"
     },
     "subnet":{
-        "allowed_ips": "" | null,
+        "allowed_ips": "xxx.xxx.xxx.xxx/yy",
         "lease": "xxx.xxx.xxx.xxx"
     }
 }
@@ -136,13 +136,15 @@ This call is to add a server to the database.
     "public_key":"XXYYXXZZ",
     "endpoint_address":"xxx.xxx.xxx.xxx",
     "endpoint_port":5128,
-    "n_reserved_ips":20
+    "n_reserved_ips":20,
+    "allowed_ips": "xxx.xxx.xxx.xxx/yy"
 }
 ```
 #### Responses
 HTTP: 201, 500
 ### /api/v1/client/add/
-This call is to add a client linked to an existing server the database
+This call is to add a client linked to an existing server the database.
+Note: Recalling will delete the server-client peer and create a new one.
 #### Call Content
 ```json
 {

@@ -37,7 +37,7 @@ def get_client_conf():
 def create_server():
     content = request.json
     try:
-        test.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'])
+        test.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'], content['allowed_ips'])
         return f"Created {content['server_name']} server.", 201
     except (Exception):
         return f"Failed to create {content['server_name']} server.", 500

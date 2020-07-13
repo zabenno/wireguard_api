@@ -114,7 +114,7 @@ class Wireguard_database():
         else:
             print("Debug: Successfully formatted database.")
 
-    def create_server(self, server_name, network_address, network_mask, public_key, endpoint_address, endpoint_port, n_reserved_ips):
+    def create_server(self, server_name, network_address, network_mask, public_key, endpoint_address, endpoint_port, n_reserved_ips, allowed_ips):
         try:
             self.cursor.execute("""
             INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s)
@@ -126,7 +126,7 @@ class Wireguard_database():
             raise Exception("Could not create server.")
         else:
             print(f"Debug: Successfully added server: {server_name}.")
-        self.create_subnet(server_name, network_address, network_mask, n_reserved_ips)
+        self.create_subnet(server_name, network_address, network_mask, n_reserved_ips, allowed_ips)
         return True
 
     def delete_server(self, server_name):
@@ -139,11 +139,11 @@ class Wireguard_database():
         else:
             print(f"Debug: Succesfully deleted server {server_name}.")
     
-    def create_subnet(self, server_name, network_address, network_mask, n_reserved_ips):
+    def create_subnet(self, server_name, network_address, network_mask, n_reserved_ips, allowed_ips):
         try:
             self.cursor.execute("""
-            INSERT INTO subnets (serverID, network_address, network_mask, n_reserved_ips ) VALUES ( %s, %s, %s, %s )
-            ;""", (server_name, network_address, network_mask, n_reserved_ips,))
+            INSERT INTO subnets (serverID, network_address, network_mask, n_reserved_ips, allowed_ips ) VALUES ( %s, %s, %s, %s, %s )
+            ;""", (server_name, network_address, network_mask, n_reserved_ips, allowed_ips,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -154,6 +154,7 @@ class Wireguard_database():
             return True
 
     def create_client(self, client_name, server_name, public_key):
+        self.delete_client_peering(client_name, server_name)
         try:
             self.cursor.execute("""
             INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s)
