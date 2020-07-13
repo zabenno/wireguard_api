@@ -5,6 +5,8 @@ A REST API server to broker connections between clients and servers.
 The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. This project could be greatly expanded and has a decent amount of assumptions.
 
 Warnings: 
+* This project is still a work in progress, futher documentation and code changes should be expected. Code could really use some clean up.
+* All testing for this project has been done on Ubuntu 20.04, within a python3.8 venv connecting to the docker image postgres:12.3.
 * Currently this project does not support any type of authentication meaning anyone with access to the API can do anything.
 * TLS is not handled by this app so a proxy is a must.
 
@@ -28,12 +30,6 @@ Client assumptions:
 
 ### Security
 Currently the project assumes that authentication and encryption will be dealt with either via a proxy or not required.
-
-## Warning: WIP
-This is a work in progress, expect further documentation and changes to follow. These changes will include database changes.
-
-## Assumptions
-All testing for this has been done on an Ubuntu 20.04 host.
 
 ## Setup
 Within the project directory you will need to run the following commands to create the appropriate python venv.
