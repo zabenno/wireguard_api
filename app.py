@@ -5,15 +5,11 @@ test = Wireguard_database()
 
 app = Flask(__name__)
 
-@app.route('/api/v1/clients/list_all', methods=["GET"])
+@app.route('/api/v1/client/list_all', methods=["GET"])
 def return_client_list():
     return jsonify(test.list_clients())
 
-@app.route('/api/v1/leases/list_all', methods=["GET"])
-def return_leases_list():
-    return jsonify(test.list_leases())
-
-@app.route('/api/v1/servers/list_all', methods=["GET"])
+@app.route('/api/v1/server/list_all', methods=["GET"])
 def return_servers_list():
     return jsonify(test.list_servers())
 
