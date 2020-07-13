@@ -17,23 +17,25 @@ def return_leases_list():
 def return_servers_list():
     return jsonify(test.list_servers())
 
-@app.route('/api/v1/server/<server_name>', methods=["GET"])
-def return_server_conf(server_name):
+@app.route('/api/v1/server/config/', methods=["GET"])
+def return_server_conf():
+    content = request.json
     try:
-        response = test.get_server_config(server_name), 200
+        response = test.get_server_config(content['server_name']), 200
     except (Exception):
-        return f"Failed to retrieve {server_name} configuration.", 500
+        return f"Failed to retrieve {content['server_name']} configuration.", 500
     print(response)
     if len(response[0]) == 0:
         return "Server not found.", 404
     return response
 
-@app.route('/api/v1/config/<server_name>/<client_name>', methods=["GET"])
-def get_client_conf(client_name, server_name):
-    print(client_name)
-    response = test.get_client_config(client_name, server_name)
-    print(response)
-    return response
+@app.route('/api/v1/client/config/', methods=["GET"])
+def get_client_conf():
+    content = request.json
+    try:
+        return test.get_client_config(content['client_name'], content['server_name']), 200
+    except (Exception):
+        return "Could not retrieve client configuration", 500
 
 @app.route('/api/v1/server/add/', methods=['POST'])
 def create_server():
