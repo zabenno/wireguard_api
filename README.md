@@ -42,6 +42,23 @@ sudo apt install libpq-dev python3-venv -y
 
 ## API Calls
 
+### /api/v1/server/list_all
+This call is to list the basic information about every defined server.
+#### Call Content
+None
+#### Response
+HTTP: 200
+```json
+{
+    "server1": {
+        "endpoint_address": "xxx.xxx.xxx.xxx",
+        "endpoint_port": 1234,
+        "public_key": "AABBCCDDEEFF"
+    }
+}
+```
+HTTP: 500
+
 ### /api/v1/server/config/
 This call is to pull down the information required for configuring the server to connect to registered peers.
 #### Call Content
@@ -82,7 +99,7 @@ HTTP: 200
         "public_key": "BBAACCDDEEFF"
     },
     "subnet":{
-        "allowed_ips": [] | null,
+        "allowed_ips": "" | null,
         "lease": "xxx.xxx.xxx.xxx"
     }
 }
@@ -96,10 +113,10 @@ This call is to add a server to the database.
 ```json
 {
     "server_name":"name",
-    "network_address":"192.168.4.0",
+    "network_address":"xxx.xxx.xxx.xxx",
     "network_mask":24,
     "public_key":"XXYYXXZZ",
-    "endpoint_address":"192.168.0.99",
+    "endpoint_address":"xxx.xxx.xxx.xxx",
     "endpoint_port":5128,
     "n_reserved_ips":20
 }
