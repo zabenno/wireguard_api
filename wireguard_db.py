@@ -237,11 +237,15 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
 
     def list_servers(self):
+        response = {}
         try:
             self.cursor.execute("SELECT * FROM servers;")
-            return self.cursor.fetchall()
+            servers = self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull server list from database: ", error)
+        for server in servers:
+            response[server[0]] = {"public_key": server[1], "endpoint_address": server[2], "endpoint_port": server[3]}
+        return response
 
     def list_leases(self):
         try:
