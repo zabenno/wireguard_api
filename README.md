@@ -17,6 +17,53 @@ sudo apt install libpq-dev python3-venv -y
 
 ## API Calls
 
+### /api/v1/server/config/
+This call is to pull down the information required for configuring the server to connect to registered peers.
+#### Call Content
+```json
+{
+    "server_name":"name"
+}
+```
+#### Responses
+HTTP: 200
+```json
+{
+    "peer1":{
+        "ip_address": "xxx.xxx.xxx.xxx",
+        "public_key": "AABBCCDDEEFF"
+    }
+}
+```
+HTTP: 500
+HTTP: 404
+
+### /api/v1/client/config/
+This call is to pull down the configuration of a specified client-server peer.
+#### Call Content
+```json
+{
+    "client_name":"name",
+    "server_name":"name"
+}
+```
+#### Responses
+HTTP: 200
+```json
+{
+    "server":{
+        "endpoint_address":"xxx.xxx.xxx.xxx",
+        "endpoint_port": 1234,
+        "public_key": "BBAACCDDEEFF"
+    },
+    "subnet":{
+        "allowed_ips": [] | null,
+        "lease": "xxx.xxx.xxx.xxx"
+    }
+}
+```
+HTTP: 500
+
 ### /api/v1/server/add/
 This call is to add a server to the database.
 
@@ -34,4 +81,49 @@ This call is to add a server to the database.
 ```
 #### Responses
 HTTP: 201, 500
-
+### /api/v1/client/add/
+This call is to add a client linked to an existing server the database
+#### Call Content
+```json
+{
+    "client_name":"name",
+    "server_name":"name",
+    "public_key":"XXYYXXZZ",
+}
+```
+#### Responses
+HTTP: 201, 500
+### /api/v1/client/delete/
+This call is to delete all instances of a single client from any servers.
+Note: This also frees the IP leases from the server.
+#### Call Content
+```json
+{
+    "client_name":"name"
+}
+```
+#### Responses
+HTTP: 200, 500
+### /api/v1/server/delete/
+This call is to delete a server.
+Note: This also remove all instances of clients that are attached to this server. In the case this is the only server a client is attached to, it will also delete the client.
+#### Call Content
+```json
+{
+    "server_name":"name"
+}
+```
+#### Responses
+HTTP: 200, 500
+### /api/v1/server/remove_peer/
+This call is to remove a single client from a server.
+Note: In the case this is the only server a client is attached to, it will also delete the client.
+#### Call Content
+```json
+{
+    "client_name":"name",
+    "server_name":"name"
+}
+```
+#### Responses
+HTTP: 200, 500
