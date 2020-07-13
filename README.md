@@ -42,6 +42,24 @@ sudo apt install libpq-dev python3-venv -y
 
 ## API Calls
 
+### /api/v1/client/list_all
+This call is to list the basic information about every peering instance everying client has.
+#### Call Content
+None
+#### Response
+HTTP: 200
+```json
+{
+    "client1": {
+        "peering1": {
+            "public_key": "AABBCCDDEEFF",
+            "server": "server1"
+        }
+    }
+}
+```
+HTTP: 500
+
 ### /api/v1/server/list_all
 This call is to list the basic information about every defined server.
 #### Call Content
