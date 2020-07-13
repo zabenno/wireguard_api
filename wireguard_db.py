@@ -164,6 +164,7 @@ class Wireguard_database():
             print("Error: Could not create client: ", error)
         else:
             print(f"Debug: Successfully added client: {client_name}.")
+        self.assign_lease(client_name, server_name)
 
     def delete_client(self, client_name):
         try:
@@ -292,7 +293,6 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
             raise Exception("Could not retrieve config for server.")
-            return False
         for client in clients:
             response[client[0]] = {"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}
         return response
