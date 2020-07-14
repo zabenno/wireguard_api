@@ -1,0 +1,18 @@
+version: "3.6"
+
+services: 
+  wireguard_api:
+    image: test:latest
+    ports:
+      - "5000:5000"
+    secrets:
+      - api_password
+      - db_password
+    environment: 
+      DBSERVER: 192.168.0.126
+
+secrets:
+  api_password:
+    file: ./api_password.txt
+  db_password:
+    file: ./db_password.txt

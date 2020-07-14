@@ -1,3 +1,4 @@
 lab_env/
 .vscode/
 __pycache__
+*.txt
