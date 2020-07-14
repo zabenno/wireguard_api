@@ -3,13 +3,33 @@ version: "3.6"
 services: 
   wireguard_api:
     image: test:latest
-    ports:
-      - "5000:5000"
+    networks: 
+      - frontend
     secrets:
       - api_password
       - db_password
     environment: 
-      DBSERVER: 192.168.0.126
+      DB_SERVER: 192.168.0.126
+    deploy:
+      labels: 
+        - "traefik.http.routers.wireguard_api.rule=Host(`wireguard_api.docker.localhost`)"
+        - "traefik.http.services.wireguard_api.loadbalancer.server.port=5000"
+        - "traefik.enable=true"
+  reverse-proxy:
+    image: traefik:v2.2
+    networks: 
+      - frontend
+    command: --api.insecure=true --providers.docker=true --providers.docker.swarmMode=true --providers.docker.network=frontend
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+networks: 
+  frontend:
+    driver: overlay
 
 secrets:
   api_password:
