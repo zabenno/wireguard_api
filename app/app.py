@@ -4,15 +4,15 @@ from waitress import serve
 from functools import wraps
 import os
 
-server = os.environ.get('DBSERVER')
-port = os.environ.get('DBPORT')
-database = os.environ.get('DATABASE')
-db_user = os.environ.get('DBUSER')
+server = os.environ.get('DB_SERVER')
+port = os.environ.get('DB_PORT')
+database = os.environ.get('DB_NAME')
+db_user = os.environ.get('DB_USER')
 with open(os.environ.get('DB_PASSWORD_PATH'),'r') as f:
     db_password = f.read()
-api_username = os.environ.get('APIUSER')
+api_username = os.environ.get('API_USER')
 with open(os.environ.get('API_PASSWORD_PATH'),'r') as f:
-    api_password  = f.read()
+    api_password = f.read()
 
 test = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
 
@@ -24,7 +24,7 @@ def auth_required(f):
         auth = request.authorization
         if auth and auth.username == api_username and auth.password == api_password:
             return f(*args, **kwargs)
-        return "Couldn't find login.", 401, {'WWW-Authenticate' : 'Basic realm="Login Required"'}
+        return "Invalid login.", 401, {'WWW-Authenticate' : 'Basic realm="Login Required"'}
     return decorated
 
 @app.route('/api/v1/client/list_all', methods=["GET"])
