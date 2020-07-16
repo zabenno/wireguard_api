@@ -213,14 +213,21 @@ class Wireguard_database():
             print(f"Error: Failed to retrieve details of subnet for client {server_name}: ", error)
         subnet = ipaddress.ip_network(f"{network_address}/{network_mask}")
         
-        #If it's the first lease to be given out
+        #Set it to the first available ip if none exist.
         if len(taken_ips) == 0:
             return subnet[n_reserved_ips + 1]
 
+        #Format query result to list of ints
+        taken_ips_ints = []
+        for ip in taken_ips:
+            taken_ips_ints += [int(ip[0])]
+
+        #Return first IP address not in use
         for ipaddr in subnet.hosts():
-            for ip in taken_ips:
-                if ipaddr != ipaddress.IPv4Address(int(ip[0])) and ipaddr > subnet[n_reserved_ips]:
-                    return ipaddr
+            ipaddr = ipaddress.ip_address(ipaddr)
+            intaddr = int.from_bytes(ipaddr.packed, "big")
+            if not intaddr in taken_ips_ints:
+                return ipaddr
     
     def ip_to_int(self, ip):
         if len(str(ip)) == 0:
@@ -257,6 +264,13 @@ class Wireguard_database():
     def list_leases(self):
         try:
             self.cursor.execute("SELECT * FROM leases;")
+            return self.cursor.fetchall()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: Could not pull client list from database: ", error)
+
+    def list_subnets(self):
+        try:
+            self.cursor.execute("SELECT * FROM subnets;")
             return self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: Could not pull client list from database: ", error)
