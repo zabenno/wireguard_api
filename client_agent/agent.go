@@ -24,16 +24,38 @@ type Peering struct {
 	Subnet Subnet `json:"subnet"`
 }
 
+type Client struct {
+	Client_name string `json:"client_name"`
+	Server_name string `json:"server_name"`
+	Public_key string `json:"public_key"`
+}
+
 func main()  {
 	url := "https://wireguard_api.docker.localhost/api/v1/client/config/"
 	client_name := "testclient1"
 	server_name := "wireguard02"
+	public_key := "ZZTTBBDDGGCC"
 	var json_details = get_peering_details(url, client_name, server_name)
 
-	var config = generate_conf(json_details, "ZZTTBBDDGGCC")
+	var config = generate_conf(json_details, public_key)
 
-	fmt.Print(config)
+	fmt.Print(config, "\n")
+
+	fmt.Print(generate_client_request(public_key, client_name, server_name), "\n")
 	
+}
+
+func generate_client_request (public_key, client_name, server_name string) string {
+	var client_request = Client{
+		Client_name: client_name,
+		Server_name: server_name,
+		Public_key: public_key,
+	}
+	client_request_JSON, err := json.MarshalIndent(client_request, "", "	")
+	if err != nil {
+        panic(err)
+	}
+	return string(client_request_JSON)
 }
 
 func generate_conf (peering_details Peering, private_key string) string {
