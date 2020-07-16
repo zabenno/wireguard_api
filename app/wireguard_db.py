@@ -226,7 +226,7 @@ class Wireguard_database():
         for ipaddr in subnet.hosts():
             ipaddr = ipaddress.ip_address(ipaddr)
             intaddr = int.from_bytes(ipaddr.packed, "big")
-            if not intaddr in taken_ips_ints:
+            if not intaddr in taken_ips_ints and ipaddr > subnet[n_reserved_ips]:
                 return ipaddr
     
     def ip_to_int(self, ip):
