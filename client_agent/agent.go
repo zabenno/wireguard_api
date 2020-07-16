@@ -31,21 +31,26 @@ type Client struct {
 }
 
 func main()  {
-	url := "https://wireguard_api.docker.localhost/api/v1/client/config/"
-	client_name := "testclient1"
-	server_name := "wireguard02"
-	public_key := "ZZTTBBDDGGCC"
-	var json_details = get_peering_details(url, client_name, server_name)
+	server := "https://wireguard_api.docker.localhost"
+	client_name := "testclient00"
+	server_name := "wireguard01"
+	public_key := "ZZTBDDGdiiffGCassCZH"
+	username := "admin"
+	password := "password"
 
+	//Create Peer
+	var request_str = generate_peering_request(public_key, client_name, server_name)
+	var result = submit_peering_request(server, request_str, username, password)
+	fmt.Print(result, "\n")
+
+	//Create config from create peer.
+	var json_details = get_peering_details(server, client_name, server_name)
 	var config = generate_conf(json_details, public_key)
-
 	fmt.Print(config, "\n")
 
-	fmt.Print(generate_client_request(public_key, client_name, server_name), "\n")
-	
 }
 
-func generate_client_request (public_key, client_name, server_name string) string {
+func generate_peering_request (public_key, client_name, server_name string) string {
 	var client_request = Client{
 		Client_name: client_name,
 		Server_name: server_name,
@@ -58,6 +63,26 @@ func generate_client_request (public_key, client_name, server_name string) strin
 	return string(client_request_JSON)
 }
 
+func submit_peering_request(server, request_str, username, password string) string {
+	url := server + "/api/v1/client/add/"
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte(request_str)))
+	if err != nil {
+        panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json;")
+	req.SetBasicAuth(username, password)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+	}
+	
+	bodyText, err := ioutil.ReadAll(resp.Body)
+    s := string(bodyText)
+    return s
+}
+
 func generate_conf (peering_details Peering, private_key string) string {
 	conf := fmt.Sprintf("[Interface]\nAddress = %s\nPrivateKey = %s\n\n[Peer]\nPublic_key = %s\nAllowedIPs = %s\nEndpoint = %s:%d",
 	peering_details.Subnet.Lease, private_key, peering_details.Server.Public_key, peering_details.Subnet.Allowed_ips, 
@@ -66,7 +91,8 @@ func generate_conf (peering_details Peering, private_key string) string {
 	return conf
 }
 
-func get_peering_details (url, client_name, server_name string) Peering {
+func get_peering_details (server, client_name, server_name string) Peering {
+	url := server + "/api/v1/client/config/"
 	var body = []byte(fmt.Sprintf("{\"client_name\": \"%s\", \"server_name\":\"%s\"}", client_name, server_name))
 	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
 	if err != nil {
@@ -82,7 +108,9 @@ func get_peering_details (url, client_name, server_name string) Peering {
     }
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-
+	if err != nil {
+        panic(err)
+    }
 	bodyStr := string(bodyBytes)
 
 	bytes := []byte(bodyStr)
