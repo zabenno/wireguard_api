@@ -50,7 +50,6 @@ def return_server_conf():
     return response
 
 @app.route('/api/v1/client/config/', methods=["GET"])
-@auth_required
 def get_client_conf():
     content = request.json
     try:
