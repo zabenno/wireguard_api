@@ -31,7 +31,21 @@ Client assumptions:
 ### Security
 Currently the project assumes that authentication and encryption will be dealt with either via a proxy or not required.
 
-## Setup
+## Test Setup
+To run as is you'll need to create a postgres db with the following command.
+```bash
+docker run -it -e POSTGRES_PASSWORD=changeme123 -p 5432:5432 postgres:12.3
+```
+
+To load in some test data, run `python example.py` with the correct parameters.
+
+To demo the agents you must have golang installed.
+
+To run the app you will need to create the missing files listed within docker-compose.yml.
+Follow this guide to create your ssl certs: https://gist.github.com/fntlnz/cf14feb5a46b2eda428e000157447309
+This compose file requires a swarm to function. Run `docker swarm init` before running `docker stack deploy test -c docker-compose.yml`.
+You will also need to build the docker container locally with `docker build -t test .`
+
 Within the project directory you will need to run the following commands to create the appropriate python venv.
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -39,6 +53,8 @@ sudo apt install libpq-dev python3-venv -y
 ./lab_env/bin/pip install pylint
 ./lab_env/bin/pip install psycopg2
 ```
+
+PS: Sorry if some instructions are missing.
 
 ## API Calls
 
