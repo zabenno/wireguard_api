@@ -8,7 +8,6 @@ test.create_server("wireguard02", "192.168.1.0", 24, "SSHHUUBfBWW", "192.168.2.5
 
 #Create client to show deletion works
 test.create_client("testclient1", "wireguard02", "JJIINNPkhPSS")
-test.assign_lease("testclient1", "wireguard02")
 
 print(test.list_clients())
 
@@ -19,13 +18,10 @@ print(test.list_clients())
 
 #Create clients
 test.create_client("testclient2", "wireguard01", "JJIIYYNNPPSS")
-test.assign_lease("testclient2", "wireguard01")
 test.create_client("testclient3", "wireguard01", "JJIIYYNNPfPSS")
-test.assign_lease("testclient3", "wireguard01")
 
 #Recreate client to show it works and that software is server specific
 test.create_client("testclient1", "wireguard02", "JJIINNPkhPSS")
-test.assign_lease("testclient1", "wireguard02")
 
 print(test.list_clients())
 
