@@ -189,12 +189,12 @@ class Wireguard_database():
     def assign_lease(self, client_name, server_name):
         ip_address = self.get_next_ip(server_name)
         int_ip = self.ip_to_int(ip_address)
+        clientID = self.get_client_id(client_name, server_name)
         try:
             self.cursor.execute("""
             INSERT INTO leases (subnetID, clientID, ip_address) VALUES (
             (SELECT subnetID FROM subnets WHERE serverID = %s),
-            (SELECT clientID FROM clients WHERE client_name = %s),
-            %s );""", (server_name, client_name, int_ip,))
+            %s, %s );""", (server_name, clientID, int_ip,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
