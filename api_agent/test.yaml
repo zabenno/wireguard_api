@@ -1,0 +1,13 @@
+name: "testconf1"
+type: "client"
+api_server:
+  address: "https://wireguard_api.docker.localhost"
+  username: "admin"
+  password: "password"
+peering_list:
+  - server_name: "wireguard01"
+    public_key: "testpubkeyz"
+    private_key: "testprivkeyz"
+  - server_name: "wireguard02"
+    public_key: "testpubkey1z"
+    private_key: "testprivkey1z"
