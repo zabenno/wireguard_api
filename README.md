@@ -59,6 +59,30 @@ sudo apt install libpq-dev python3-venv -y
 
 PS: Sorry if some instructions are missing.
 
+## Agent Configuration
+
+```yaml
+name: ""
+type: "client | server"
+api_server:
+    address: "https://api_server_location"
+    username: "User for auth"
+    password: "Password for auth"
+server:         #Required for server.
+    public_key: ""
+    endpoint_address: ""
+    endpoint_port: 5128
+    subnet:
+        network_address: ""
+        network_mask: ""
+        num_reserved_ips: 20
+        allowed_ips: ""
+peering_list:   #Required for client.
+    server_name: ""
+    public_key: ""
+    private_key: ""
+```
+
 ## API Calls
 
 ### /api/v1/client/list_all
