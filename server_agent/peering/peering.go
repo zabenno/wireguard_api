@@ -93,7 +93,7 @@ func (peering Shittyname) submit_peering_request(request_str string) {
     if err != nil {
         panic(err)
 	}
-	if resp.StatusCode != 200{
+	if resp.StatusCode != 201{
 		panic(resp.StatusCode)
 	}
 }
@@ -132,7 +132,7 @@ func (peering Shittyname) get_peering_details () Peering {
 	var jso Peering
 	peering_err := json.Unmarshal(bytes, &jso)
 	if peering_err != nil {
-		panic(err)
+		panic(peering_err)
 	}
 	return jso
 }
@@ -140,9 +140,7 @@ func (peering Shittyname) get_peering_details () Peering {
 func (peering Shittyname) write_config_to_file (config string) {
 	file_path := fmt.Sprintf("/etc/wireguard/%s.conf", peering.server_name)
 
-	fmt.Print("Path: ", file_path)
-	
-	err := ioutil.WriteFile(file_path, []byte(config), 0644)
+	err := ioutil.WriteFile(file_path, []byte(config), 0600)
 	if err != nil {
 		panic(err)
 	}

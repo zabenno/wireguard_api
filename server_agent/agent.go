@@ -3,12 +3,10 @@ package main
 import (
 	"agent/configparser"
 	"agent/peering"
-	"fmt"
 )
 
 func main() {
 	var config = configparser.New("./test.yaml")
-	fmt.Print(config.PeeringList)
 	if config.Type == "client" {
 		configure_as_client(config)
 	} else if config.Type == "server" {
