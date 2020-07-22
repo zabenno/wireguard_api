@@ -10,7 +10,7 @@ type Server struct {
 	Subnet 			Subnet `yaml:"subnet"`
 	PublicKey       string `yaml:"public_key"`
 	EndpointAddress string `yaml:"endpoint_address"`
-	EnpointPort     string `yaml:"enpoint_port"`
+	EnpointPort     string `yaml:"endpoint_port"`
 }
 
 type Subnet struct {
