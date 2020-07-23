@@ -309,7 +309,7 @@ class Wireguard_database():
 
     def get_server_config(self, server_name):
         subnetID = self.get_subnet_id(server_name)
-        response = {}
+        response = {"peers": []}
         try:
             self.cursor.execute("""SELECT clients.clientID, clients.public_key, leases.ip_address 
             FROM clients
@@ -319,5 +319,5 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
             raise Exception("Could not retrieve config for server.")
         for client in clients:
-            response[client[0]] = {"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}
+            response["peers"] += [{"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}]
         return response

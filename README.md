@@ -69,6 +69,8 @@ api_server:
     username: "User for auth"
     password: "Password for auth"
 server:         #Required for server.
+    name: ""
+    private_key: ""
     public_key: ""
     endpoint_address: ""
     endpoint_port: 5128
@@ -132,10 +134,12 @@ This call is to pull down the information required for configuring the server to
 HTTP: 200
 ```json
 {
-    "peer1":{
+    "peers":[
+        {
         "ip_address": "xxx.xxx.xxx.xxx",
         "public_key": "AABBCCDDEEFF"
-    }
+        }
+    ]
 }
 ```
 HTTP: 500
