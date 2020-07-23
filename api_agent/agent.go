@@ -3,6 +3,8 @@ package main
 import (
 	"agent/configparser"
 	"agent/peering"
+	"agent/apiserver"
+	"fmt"
 )
 
 func main() {
@@ -28,7 +30,14 @@ func configure_as_client (config configparser.Config){
 }
 
 func configure_as_server (config configparser.Config){
+	server := initialise_server(config)
+	fmt.Print(server.Get_config_contents())
+}
 
+func initialise_server (config configparser.Config) apiserver.Server {
+	var server apiserver.Server
+	server = apiserver.New(config)
+	return server
 }
 
 func initialise_peers (config configparser.Config) []peering.Shittyname {

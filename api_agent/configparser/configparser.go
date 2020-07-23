@@ -7,10 +7,12 @@ import(
 )
 
 type Server struct {
+	Name			string `yaml:"name"`
 	Subnet 			Subnet `yaml:"subnet"`
 	PublicKey       string `yaml:"public_key"`
+	PrivateKey      string `yaml:"private_key"`
 	EndpointAddress string `yaml:"endpoint_address"`
-	EnpointPort     string `yaml:"endpoint_port"`
+	EndpointPort     string `yaml:"endpoint_port"`
 }
 
 type Subnet struct {
