@@ -42,6 +42,7 @@ type Config struct {
 	PeeringList []PeeringInstance 	`yaml:"peering_list,omitempty"`
 }
 
+//Creates a configuration object from the file path given.
 func New(conf_file_path string) Config {
 	configuration, err := ioutil.ReadFile(conf_file_path)
 	if err != nil {

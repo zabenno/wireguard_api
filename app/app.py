@@ -4,6 +4,7 @@ from waitress import serve
 from functools import wraps
 import os
 
+#Import Database and API server creds from environment variables.
 server = os.environ.get('DB_SERVER')
 port = os.environ.get('DB_PORT')
 database = os.environ.get('DB_NAME')
@@ -15,9 +16,9 @@ with open(os.environ.get('API_PASSWORD_PATH'),'r') as f:
     api_password = f.read()
 
 test = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
-
 app = Flask(__name__)
 
+#VERY basic implementation of http-basic authentication.
 def auth_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -26,6 +27,7 @@ def auth_required(f):
             return f(*args, **kwargs)
         return "Invalid login.", 401, {'WWW-Authenticate' : 'Basic realm="Login Required"'}
     return decorated
+
 
 @app.route('/api/v1/client/list_all', methods=["GET"])
 @auth_required
@@ -37,6 +39,7 @@ def return_client_list():
 def return_servers_list():
     return jsonify(test.list_servers())
 
+#Return all non-sensitive information required to configure a specified wireguard server.
 @app.route('/api/v1/server/config/', methods=["GET"])
 @auth_required
 def return_server_conf():
@@ -49,6 +52,7 @@ def return_server_conf():
         return "Server not found.", 404
     return response
 
+#Return all non-sensitive information required to configure a specific client-server peering.
 @app.route('/api/v1/client/config/', methods=["GET"])
 def get_client_conf():
     content = request.json
@@ -57,6 +61,7 @@ def get_client_conf():
     except (Exception):
         return "Could not retrieve client configuration", 500
 
+#Create a new wireguard server.
 @app.route('/api/v1/server/add/', methods=['POST'])
 @auth_required
 def create_server():
@@ -67,6 +72,7 @@ def create_server():
     except (Exception):
         return f"Failed to create {content['server_name']} server.", 500
 
+#Create a new client-server peering.
 @app.route('/api/v1/client/add/', methods=['POST'])
 @auth_required
 def create_client():
@@ -77,6 +83,7 @@ def create_client():
     except (Exception):
         return f"Failed to create {content['client_name']} client.", 500
 
+#Remove all instances of a client with a specified host name.
 @app.route('/api/v1/client/delete/', methods=['POST'])
 @auth_required
 def delete_client():
@@ -87,6 +94,7 @@ def delete_client():
     except (Exception):
         return f"Failed to create {content['client_name']} client.", 500
 
+#Removes a server and any row in the database referencing it.
 @app.route('/api/v1/server/delete/', methods=['POST'])
 @auth_required
 def delete_server():
@@ -97,6 +105,7 @@ def delete_server():
     except (Exception):
         return f"Failed to create {content['server_name']} server.", 500
 
+#Removes the peering instance of a specified client from a specified server.
 @app.route('/api/v1/server/remove_peer/', methods=['POST'])
 @auth_required
 def remove_peer():

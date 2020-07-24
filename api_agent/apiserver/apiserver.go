@@ -38,12 +38,14 @@ type Subnet struct {
 	AllowedIps string
 }
 
+//Creates a new server instance in local memory.
 func New(config configparser.Config) Server {
 	servers_subnet := Subnet{config.Server.Subnet.NetworkAddress, config.Server.Subnet.NetworkMask, config.Server.Subnet.NumReservedIps, config.Server.Subnet.AllowedIps}
 	server := Server{config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Server.Name, config.Server.PublicKey, config.Server.PrivateKey, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
 	return server
 }
 
+//Refreshes the in memory configuration of the wireguard server.
 func (server Server) Sync_wireguard_conf () {
 	wireguard_path, err := exec.LookPath("wg")
 
@@ -59,6 +61,7 @@ func (server Server) Sync_wireguard_conf () {
 	}
 }
 
+//Updates the on disk configuration for the wireguard server.
 func (server Server) Update_config_file (config string){
 	file_path := fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name)
 
@@ -68,6 +71,7 @@ func (server Server) Update_config_file (config string){
 	}
 }
 
+//Creates the contents for the peers section of the server configuration file for all clients assigned to it.
 func (server Server) Get_config_contents () string {
 	response := server.get_interface_config()
 	peers := server.get_peers()
@@ -77,6 +81,7 @@ func (server Server) Get_config_contents () string {
 	return response
 }
 
+//Creates the contents for the interface section of the wireguard server configuration 
 func (server Server) get_interface_config () string {
 	response := "[Interface]\n"
 	response += fmt.Sprintf("Address = %s/%s\n", server.subnet.NetworkAddress, server.subnet.NetworkMask)
@@ -85,6 +90,7 @@ func (server Server) get_interface_config () string {
 	return response
 }
 
+//Retrieves the required information for the server to configure itself to establish connections to all assigned clients.
 func (server Server) get_peers () Clients {
 	url := server.api_server + "/api/v1/server/config/"
 	var body = []byte(fmt.Sprintf("{ \"server_name\":\"%s\" }", server.server_name))

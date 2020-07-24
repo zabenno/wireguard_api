@@ -17,6 +17,40 @@ class Wireguard_database():
         Checks for a valid Postgres database that already store context.
     format_database()
         Called to create the tables required when conencting to an empty database.
+    create_server()
+        Adds a new server instance to the database.
+    delete_server()
+        Ensures there is no server instance of the given name.
+    create_subnet()
+        Adds a subnet to the database referencing a server.
+    create_client()
+        Ensures a client-server peering exists with the given parameters.
+    delete_client()
+        Removes all instances from the database where the client name is referenced.
+    delete_client_peering()
+        Ensures a client is not referenced by a server.
+    assign_lease()
+        Assigns an IP Address to be used by the client when connecting to the server.
+    get_next_ip()
+        Finds the next IP available for a specific server.
+    ip_to_int()
+        Creates an interger that can be converted back IPv4Address object later.
+    list_clients()
+        Lists all clients currently in the database.
+    list_servers()
+        Lists all servers in the database.
+    list_leases()
+        Lists all leases currently in the database.
+    list_subnets()
+        Lists all subnets currently in the database.
+    get_client_id()
+        Retrieves the ID of a client-server peering.
+    get_subnet_id()
+        Retrieves the ID of a subnet in use by a server.
+    get_client_config()
+        Retrieves all non-sensitive details required to configure a client.
+    get_server_config()
+        Retrieves all non-sensitive details required to configure a server.
     """
     def __init__(self, db_server="127.0.0.1", db_port="5432", db_database="postgres", db_user="postgres", db_password="changeme123"):
         """
@@ -114,6 +148,10 @@ class Wireguard_database():
             print("Debug: Successfully formatted database.")
 
     def create_server(self, server_name, network_address, network_mask, public_key, endpoint_address, endpoint_port, n_reserved_ips, allowed_ips):
+        """
+        This method creates a wireguard server that will be ready to have clients added to it upon the completion of this method.
+        To achieve this create_subnet() is called from within this method, passing through the relevant parmaters.
+        """
         try:
             self.cursor.execute("""
             INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s)
@@ -129,6 +167,9 @@ class Wireguard_database():
         return True
 
     def delete_server(self, server_name):
+        """
+        This method removes all rows within the database that reference this server. This includes any subnet, clients, and leases assigned to it.
+        """
         try:
             self.cursor.execute("DELETE FROM servers WHERE servers.serverID = %s;", (server_name,))
             self.db_connection.commit()
@@ -139,6 +180,10 @@ class Wireguard_database():
             print(f"Debug: Succesfully deleted server {server_name}.")
     
     def create_subnet(self, server_name, network_address, network_mask, n_reserved_ips, allowed_ips):
+        """
+        This method creates a subnet and assigns it to an existing server.
+        This method should never be called directly as it is called from within the create_server() method.
+        """
         try:
             self.cursor.execute("""
             INSERT INTO subnets (serverID, network_address, network_mask, n_reserved_ips, allowed_ips ) VALUES ( %s, %s, %s, %s, %s )
@@ -153,6 +198,11 @@ class Wireguard_database():
             return True
 
     def create_client(self, client_name, server_name, public_key):
+        """
+        This method creates a client-server peering that will be ready to connect upon the server refreshing its configuration.
+        In the case a peering already exists, this method will overwrite the old peering.
+        This method calls assign_lease() to allow for the client to connect to the server.
+        """
         self.delete_client_peering(client_name, server_name)
         try:
             self.cursor.execute("""
@@ -167,6 +217,9 @@ class Wireguard_database():
         self.assign_lease(client_name, server_name)
 
     def delete_client(self, client_name):
+        """
+        This method deletes all references to a specified client name. This will free any leases the client may have had and remove it from all servers.
+        """
         try:
             self.cursor.execute("DELETE FROM clients WHERE clients.client_name = %s;", (client_name,))
             self.db_connection.commit()
@@ -177,6 +230,10 @@ class Wireguard_database():
             print(f"Debug: Succesfully deleted client {client_name}.")
 
     def delete_client_peering(self, client_name, server_name):
+        """
+        This method deletes a single instance of peering between a specified client and server.
+        This will free the lease that was used by the client to connect to the server.
+        """
         try:
             self.cursor.execute("DELETE FROM clients WHERE clients.client_name = %s AND clients.serverID = %s;", (client_name, server_name,))
             self.db_connection.commit()
@@ -187,6 +244,10 @@ class Wireguard_database():
             print(f"Debug: Succesfully deleted client-server peer {client_name}-{server_name}.")
 
     def assign_lease(self, client_name, server_name):
+        """
+        This method will assign a wireguard IP address to a client that will be used to communicate to the server within the wireguard session.
+        This method should not be called directly as it is called from within the create_client() method.
+        """
         ip_address = self.get_next_ip(server_name)
         int_ip = self.ip_to_int(ip_address)
         clientID = self.get_client_id(client_name, server_name)
@@ -203,6 +264,9 @@ class Wireguard_database():
             print(f"Debug: Successfully added client: {client_name}.")
 
     def get_next_ip(self, server_name):
+        """
+        This method returns the next unassigned IP address from the subnet owned by a server.
+        """
         try:
             self.cursor.execute("""SELECT leases.ip_address FROM subnets INNER JOIN leases ON subnets.subnetID = leases.subnetID 
             WHERE subnets.serverID = %s;""", (server_name,))
@@ -230,6 +294,10 @@ class Wireguard_database():
                 return ipaddr
     
     def ip_to_int(self, ip):
+        """
+        This method converts an string ipv4 address to a interger representation that __init__ of IPv4Address can understand.
+        This method was more useful when assigning leases in a differenet manner and could be removed in future.
+        """
         if len(str(ip)) == 0:
             raise Exception("Error: Server out of leases")
         ipaddr = ipaddress.ip_address(ip)
@@ -237,6 +305,9 @@ class Wireguard_database():
         return intaddr
 
     def list_clients(self):
+        """
+        Returns all columns of all rows within the clients table.
+        """
         response = {}
         try:
             self.cursor.execute("SELECT * FROM clients;")
@@ -251,6 +322,9 @@ class Wireguard_database():
 
 
     def list_servers(self):
+        """
+        Returns all columns of all rows within the servers table.
+        """
         response = {}
         try:
             self.cursor.execute("SELECT * FROM servers;")
@@ -262,6 +336,9 @@ class Wireguard_database():
         return response
 
     def list_leases(self):
+        """
+        Returns all columns of all rows within the leases table.
+        """
         try:
             self.cursor.execute("SELECT * FROM leases;")
             return self.cursor.fetchall()
@@ -269,6 +346,9 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
 
     def list_subnets(self):
+        """
+        Returns all columns of all rows within the subnets table.
+        """
         try:
             self.cursor.execute("SELECT * FROM subnets;")
             return self.cursor.fetchall()
@@ -276,6 +356,9 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
 
     def get_client_id(self, client_name, server_name):
+        """
+        Returns the Primary Key ID of the peering between the specified client and server.
+        """
         try:
             self.cursor.execute("SELECT clientID FROM clients WHERE client_name = %s AND serverID = %s;", (client_name, server_name,))
             return self.cursor.fetchone()
@@ -283,6 +366,9 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
     
     def get_subnet_id(self, server_name):
+        """
+        Returns the Primary Key ID of the subnet assigned to the specified server.
+        """
         try:
             self.cursor.execute("SELECT subnetID FROM subnets WHERE serverID = %s;", (server_name,))
             return self.cursor.fetchone()
@@ -290,6 +376,9 @@ class Wireguard_database():
             print("Error: Could not pull client list from database: ", error)
 
     def get_client_config(self, client_name, server_name):
+        """
+        Returns all non-sensitive details required for a client to configure itself for the peering with a single server.
+        """
         clientID = self.get_client_id(client_name, server_name)
         try:
             self.cursor.execute("""SELECT public_key, endpoint_address, endpoint_port 
@@ -308,6 +397,9 @@ class Wireguard_database():
         return response
 
     def get_server_config(self, server_name):
+        """
+        Returns all client details required for a server to configure itself to accept connections from those clients.
+        """
         subnetID = self.get_subnet_id(server_name)
         response = {"peers": []}
         try:

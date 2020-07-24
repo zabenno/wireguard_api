@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+//Checks whether a host is configured to be a client or server then hands over to other methods.
 func main() {
 	var config = configparser.New("./test.yaml")
 	if config.Type == "client" {
@@ -19,6 +20,8 @@ func main() {
 	}
 }
 
+//Creates all peering instances specified within the configuration file and creates a seperate wireguard configuration file for each peering.
+//Calls initialise_peers()
 func configure_as_client (config configparser.Config){
 	peers := initialise_peers(config)
 	for index := range peers {
@@ -30,6 +33,8 @@ func configure_as_client (config configparser.Config){
 	}
 }
 
+//More work to do. Currently recreates a configuration file for the server every 60 seconds and, if it finds a difference from the last created, resyncs wireguards in memory configuration.
+//Calls initialise_server()
 func configure_as_server (config configparser.Config){
 	current_config := ""
 	server := initialise_server(config)
@@ -49,14 +54,18 @@ func configure_as_server (config configparser.Config){
 	fmt.Print(server.Get_config_contents())
 }
 
+//Called by configure_as_server()
+//Creates a server object in localy memory.
 func initialise_server (config configparser.Config) apiserver.Server {
 	var server apiserver.Server
 	server = apiserver.New(config)
 	return server
 }
 
-func initialise_peers (config configparser.Config) []peering.Shittyname {
-	var peering_instances []peering.Shittyname
+//Called by configure_as_client()
+//Creates a list of peering instances for all peering instances specified with the configuration file.
+func initialise_peers (config configparser.Config) []peering.PeeringInstance {
+	var peering_instances []peering.PeeringInstance
 	for index := range config.PeeringList{
 		var peers configparser.PeeringInstance
 		peers = config.PeeringList[index]
