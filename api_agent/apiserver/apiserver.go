@@ -7,6 +7,7 @@ import(
 	"io/ioutil"
 	"encoding/json"
 	"agent/configparser"
+	"os/exec"
 )
 
 type Client struct{
@@ -43,6 +44,30 @@ func New(config configparser.Config) Server {
 	return server
 }
 
+func (server Server) Sync_wireguard_conf () {
+	wireguard_path, err := exec.LookPath("wg")
+
+	if err != nil {
+		panic(err)
+	} else {
+		command := exec.Command(wireguard_path, "syncconf", server.server_name, fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name))
+		output, err := command.CombinedOutput()
+		if err != nil {
+			fmt.Print("\nOutput: ", string(output))
+			panic(err)
+		}
+	}
+}
+
+func (server Server) Update_config_file (config string){
+	file_path := fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name)
+
+	err := ioutil.WriteFile(file_path, []byte(config), 0600)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (server Server) Get_config_contents () string {
 	response := server.get_interface_config()
 	peers := server.get_peers()
@@ -54,7 +79,7 @@ func (server Server) Get_config_contents () string {
 
 func (server Server) get_interface_config () string {
 	response := "[Interface]\n"
-	response += fmt.Sprintf("Address = %s\n", server.endpointaddress )
+	response += fmt.Sprintf("Address = %s/%s\n", server.subnet.NetworkAddress, server.subnet.NetworkMask)
 	response += fmt.Sprintf("ListenPort = %s\n", server.endpointport)
 	response += fmt.Sprintf("PrivateKey = %s\n\n", server.private_key)
 	return response
