@@ -4,7 +4,6 @@ import (
 	"agent/configparser"
 	"agent/peering"
 	"agent/apiserver"
-	"fmt"
 	"time"
 )
 
@@ -38,20 +37,21 @@ func configure_as_client (config configparser.Config){
 func configure_as_server (config configparser.Config){
 	current_config := ""
 	server := initialise_server(config)
+	//Register server if it doesn't exist.
+	if ! server.Server_is_registered(){
+		server.Register_server()
+	}
+	//Periodically check for new clients and update configuration if client list changes.
 	for true {
 		
 		pulled_config := server.Get_config_contents()
 		if pulled_config != current_config{
-			fmt.Print("Different")
 			server.Update_config_file(pulled_config)
 			server.Sync_wireguard_conf()
 			current_config = pulled_config
-		} else {
-			fmt.Print("same")
 		}
 		time.Sleep(60 * time.Second)
 	}
-	fmt.Print(server.Get_config_contents())
 }
 
 //Called by configure_as_server()
