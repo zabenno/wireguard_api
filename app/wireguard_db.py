@@ -98,8 +98,8 @@ class Wireguard_database():
             self.cursor.execute("""
             CREATE TABLE servers (
                 serverID VARCHAR (20) PRIMARY KEY,
-                public_key VARCHAR (40) UNIQUE,
-                endpoint_address VARCHAR (15),
+                public_key VARCHAR (45) UNIQUE,
+                endpoint_address VARCHAR,
                 endpoint_port INT
             );
             """)
@@ -108,7 +108,7 @@ class Wireguard_database():
             CREATE TABLE clients (
                 clientID serial PRIMARY KEY,
                 client_name VARCHAR (20),
-                public_key VARCHAR (40) UNIQUE,
+                public_key VARCHAR (45) UNIQUE,
                 serverID VARCHAR (20),
                 CONSTRAINT clients_serverID_fkey FOREIGN KEY (serverID) 
                 REFERENCES servers (serverID) ON DELETE CASCADE
