@@ -56,7 +56,7 @@ sudo apt install libpq-dev python3-venv -y
 PS: Sorry if some instructions are missing.
 
 ## Agent Configuration
-The agent can be configured as both a server and a client with the following parameters.
+The agent can be configured as either a server or a client with the following parameters.
 ```yaml
 name: ""
 type: "client | server"
