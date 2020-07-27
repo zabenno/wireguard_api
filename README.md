@@ -1,12 +1,13 @@
 # wireguard_api
-A REST API server to broker connections between clients and servers.
+A REST API server to broker basic connections between clients and servers.
 
 ## Overview
-The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. Currently the agents and server provide the configuration files required to create/configure the interfaces, the creation of these interfaces is not handled by these agents, for this see the command `wg-quick`. This project could be greatly expanded and has a decent amount of assumptions.
+The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. Currently the agent and server only generate the configuration files required to create/configure wireguard interfaces. The creation of these interfaces is not handled by the agent, for this, see the wireguard command `wg-quick`. This project could be greatly expanded and has a decent amount of assumptions.
 
 Warnings: 
-* Code could really use some clean up, some refactoring, authentication, and improved error handling and logging.
-* Due to the way wireguard parses config, an invalid client public key will prevent the server from refreshing it's client list.
+* Code could really use a clean up. Some refactoring, authentication, and improved error handling and logging.
+* User data passed to SQL queries is sanitised, however no checks are performed to ensure input data makes contextual sense.
+* Due to the way the `wg syncconf` parses config, an invalid client public key will prevent the server from refreshing it's client list. This will fail with a misleading error suggesting the problem lies within the first lines of the generated file.
 * TLS is not handled by this app so a proxy is a must.
 
 Note:
