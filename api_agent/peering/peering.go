@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"encoding/json"
+	"agent/keypair"
 )
 
 type Server struct {
@@ -42,8 +43,9 @@ type PeeringInstance struct {
 }
 
 //Used to create an instance of a client-server peering in local memory.
-func New(api_server, api_username, api_password, client_name, server_name, public_key, private_key string) PeeringInstance {
-	peering_instance := PeeringInstance{api_server, api_username, api_password, client_name, server_name, public_key, private_key}
+func New(api_server, api_username, api_password, client_name, server_name string) PeeringInstance {
+	keypair := keypair.New(server_name)
+	peering_instance := PeeringInstance{api_server, api_username, api_password, client_name, server_name, keypair.Public_key, keypair.Private_key}
 	return peering_instance
 }
 

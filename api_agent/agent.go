@@ -5,10 +5,12 @@ import (
 	"agent/peering"
 	"agent/apiserver"
 	"time"
+	"os"
 )
 
 //Checks whether a host is configured to be a client or server then hands over to other methods.
 func main() {
+	ensure_conf_dir()
 	var config = configparser.New("./test.yaml")
 	if config.Type == "client" {
 		configure_as_client(config)
@@ -16,6 +18,25 @@ func main() {
 		configure_as_server(config)
 	} else {
 		panic("Wrong or no type specified.")
+	}
+}
+
+//Checks if a file exists and is not a directory
+func check_dir_exists (file_path string) bool {
+	info, err := os.Stat(file_path)
+    if os.IsNotExist(err) {
+        return false
+    }
+    return info.IsDir()
+}
+
+//Ensures configuration directory exists.
+func ensure_conf_dir () {
+	if !check_dir_exists("/etc/wireguard_api/"){
+		err := os.Mkdir("/etc/wireguard_api/", 0755)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -69,7 +90,7 @@ func initialise_peers (config configparser.Config) []peering.PeeringInstance {
 	for index := range config.PeeringList{
 		var peers configparser.PeeringInstance
 		peers = config.PeeringList[index]
-		peering_instances= append(peering_instances, peering.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Name, peers.Server, peers.PublicKey, peers.PrivateKey))
+		peering_instances= append(peering_instances, peering.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Name, peers.Server))
 	}
 	return peering_instances
 }

@@ -30,8 +30,6 @@ type ApiServer struct {
 
 type PeeringInstance struct {
 	Server     string `yaml:"server_name"`
-	PublicKey  string `yaml:"public_key"`
-	PrivateKey string `yaml:"private_key"`
 }
 
 type Config struct {
