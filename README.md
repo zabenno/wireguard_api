@@ -1,19 +1,17 @@
 # wireguard_api
-A REST API server to broker connections between clients and servers.
+A REST API server to broker basic connections between clients and servers.
 
 ## Overview
-The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. This project could be greatly expanded and has a decent amount of assumptions.
+The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. Currently the agent and server only generate the configuration files required to create/configure wireguard interfaces. The creation of these interfaces is not handled by the agent, for this, see the wireguard command `wg-quick`. This project could be greatly expanded and has a decent amount of assumptions.
 
 Warnings: 
-* This project is still a work in progress, futher documentation and code changes should be expected. Code could really use some clean up.
-* All testing for this project has been done on Ubuntu 20.04, within a python3.8 venv connecting to the docker image postgres:12.3.
-* Currently this project does not support any type of authentication meaning anyone with access to the API can do anything.
+* Code could really use a clean up. Some refactoring, authentication, and improved error handling and logging.
+* User data passed to SQL queries is sanitised, however no checks are performed to ensure input data makes contextual sense.
+* Due to the way the `wg syncconf` parses config, an invalid client public key will prevent the server from refreshing it's client list. This will fail with a misleading error suggesting the problem lies within the first lines of the generated file.
 * TLS is not handled by this app so a proxy is a must.
 
-Technical goals:
-* All state is offloaded to a Postgres database.
-* Dockerised.
-* HTTPS to be done via proxy.
+Note:
+* All testing for this project has been done on Ubuntu 20.04, within a python3.8 venv connecting to the docker image postgres:12.3.
 
 ## Design Descisions
 ### Pull From Server
@@ -23,20 +21,19 @@ Updates to a WireGuard servers client list will be done via a pull from the serv
 A client should be thought of as a single entity, consisting of one or multiple peerings.
 
 Client assumptions:
-* A client can be peered to multiple servers but can only have one concurrent peering to any server.
+* A client can be peered to multiple servers but can only have one concurrent peering to any single server.
 * If a client is deleted by name all instances of peering are also deleted.
 * A client must have a peering instance to exist.
 * A client will be directly requesting the API for changes to itself.
 
 ### Security
-Currently the project assumes that authentication and encryption will be dealt with either via a proxy or not required.
+Currently the project requires a specified shared username/password for all POST requests and assumes it is behind a TLS proxy.
 
 ## Test Setup
 To run as is you'll need to create a postgres db with the following command.
 ```bash
 docker run -it -e POSTGRES_PASSWORD=changeme123 -p 5432:5432 postgres:12.3
 ```
-
 To load in some test data, run `python example.py` with the correct parameters.
 
 To demo the agents you must have golang installed you can then run the agents with `go run /path/to/agent.go`
@@ -49,7 +46,7 @@ This compose file requires a swarm to function. Run `docker swarm init` before r
 
 You will also need to build the docker container locally with `docker build -t test .`
 
-Within the project directory you will need to run the following commands to create the appropriate python venv if you wish to run the app on your host outside of the container.
+If you wish to run the app directly on your host run the following commands from wiithin the project directory.
 ```bash
 sudo apt update && sudo apt upgrade -y
 sudo apt install libpq-dev python3-venv -y 
@@ -60,7 +57,7 @@ sudo apt install libpq-dev python3-venv -y
 PS: Sorry if some instructions are missing.
 
 ## Agent Configuration
-
+The agent can be configured as either a server or a client with the following parameters.
 ```yaml
 name: ""
 type: "client | server"
