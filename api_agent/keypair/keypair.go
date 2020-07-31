@@ -19,7 +19,7 @@ func New(keypair_name string) Keypair{
 		keypair.Private_key = read_file(fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name))
 		keypair.Public_key = read_file(fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name))
 	} else {
-		keypair.create_key_pair(keypair_name)
+		keypair = keypair.create_key_pair(keypair_name)
 	}
 	return keypair
 }
@@ -55,7 +55,7 @@ func check_file_exists (keypair_name string) bool {
 }
 
 //Creates the key pair for a peering instance.
-func (keypair Keypair) create_key_pair (keypair_name string) {
+func (keypair Keypair) create_key_pair (keypair_name string) Keypair {
 	wireguard_path, err := exec.LookPath("wg")
 	private_key, priv_err := exec.Command(wireguard_path, "genkey").Output()
 	if err != nil {
@@ -72,6 +72,7 @@ func (keypair Keypair) create_key_pair (keypair_name string) {
 	keypair.Public_key = strings.TrimSpace(string(public_key))
 	
 	keypair.save_key_pair(keypair_name)
+	return keypair
 }
 
 //writes keys to files.
