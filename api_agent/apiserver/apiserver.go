@@ -7,6 +7,7 @@ import(
 	"io/ioutil"
 	"encoding/json"
 	"agent/configparser"
+	"agent/keypair"
 	"os/exec"
 )
 
@@ -51,8 +52,9 @@ type NewServerRequest struct {
 
 //Creates a new server instance in local memory.
 func New(config configparser.Config) Server {
+	keypair := keypair.New(config.Server.Name)
 	servers_subnet := Subnet{config.Server.Subnet.NetworkAddress, config.Server.Subnet.NetworkMask, config.Server.Subnet.NumReservedIps, config.Server.Subnet.AllowedIps}
-	server := Server{config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Server.Name, config.Server.PublicKey, config.Server.PrivateKey, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
+	server := Server{config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Server.Name, keypair.Public_key, keypair.Private_key, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
 	return server
 }
 
