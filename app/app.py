@@ -2,7 +2,7 @@ from flask import Flask, jsonify, render_template, request
 from wireguard_db import Wireguard_database
 from waitress import serve
 from functools import wraps
-import os
+import os, logging
 
 #Import Database and API server creds from environment variables.
 server = os.environ.get('DB_SERVER')
@@ -47,9 +47,9 @@ def return_server_conf():
     try:
         response = test.get_server_config(content['server_name']), 200
     except (Exception):
-        return f"Failed to retrieve {content['server_name']} configuration.", 500
+        return "", 500
     if len(response[0]) == 0:
-        return "Server not found.", 404
+        return "", 404
     return response
 
 #Return all non-sensitive information required to configure a specific client-server peering.
@@ -59,29 +59,24 @@ def get_client_conf():
     try:
         return test.get_client_config(content['client_name'], content['server_name']), 200
     except (Exception):
-        return "Could not retrieve client configuration", 500
+        return "", 500
 
 #Create a new wireguard server.
 @app.route('/api/v1/server/add/', methods=['POST'])
 @auth_required
 def create_server():
     content = request.json
-    try:
-        test.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'], content['allowed_ips'])
-        return f"Created {content['server_name']} server.", 201
-    except (Exception):
-        return f"Failed to create {content['server_name']} server.", 500
+    response_code = test.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'], content['allowed_ips'])
+    return "", response_code
 
 #Create a new client-server peering.
 @app.route('/api/v1/client/add/', methods=['POST'])
 @auth_required
 def create_client():
     content = request.json
-    try:
-        test.create_client(content['client_name'], content['server_name'], content['public_key'])
-        return f"Created {content['client_name']} client.", 201
-    except (Exception):
-        return f"Failed to create {content['client_name']} client.", 500
+    response_code = test.create_client(content['client_name'], content['server_name'], content['public_key'])
+    return "", response_code
+
 
 #Remove all instances of a client with a specified host name.
 @app.route('/api/v1/client/delete/', methods=['POST'])

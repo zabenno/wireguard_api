@@ -1,11 +1,12 @@
 package main
 
 import (
+	"agent/apiserver"
 	"agent/configparser"
 	"agent/peering"
-	"agent/apiserver"
-	"time"
+	"log"
 	"os"
+	"time"
 )
 
 //Checks whether a host is configured to be a client or server then hands over to other methods.
@@ -22,17 +23,17 @@ func main() {
 }
 
 //Checks if a file exists and is not a directory
-func check_dir_exists (file_path string) bool {
+func check_dir_exists(file_path string) bool {
 	info, err := os.Stat(file_path)
-    if os.IsNotExist(err) {
-        return false
-    }
-    return info.IsDir()
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
 }
 
 //Ensures configuration directory exists.
-func ensure_conf_dir () {
-	if !check_dir_exists("/etc/wireguard_api/"){
+func ensure_conf_dir() {
+	if !check_dir_exists("/etc/wireguard_api/") {
 		err := os.Mkdir("/etc/wireguard_api/", 0755)
 		if err != nil {
 			panic(err)
@@ -42,34 +43,41 @@ func ensure_conf_dir () {
 
 //Creates all peering instances specified within the configuration file and creates a seperate wireguard configuration file for each peering.
 //Calls initialise_peers()
-func configure_as_client (config configparser.Config){
+func configure_as_client(config configparser.Config) {
 	peers := initialise_peers(config)
 	for index := range peers {
 		peering_instance := peers[index]
-		if ! peering_instance.Check_peering_existance() {
-			peering_instance.Create_peer()
-			peering_instance.Create_config_file()
+		if !peering_instance.Check_peering_existance() {
+			err := peering_instance.Create_peer()
+			if err == nil {
+				peering_instance.Create_config_file()
+			}
 		}
 	}
 }
 
 //More work to do. Currently recreates a configuration file for the server every 60 seconds and, if it finds a difference from the last created, resyncs wireguards in memory configuration.
 //Calls initialise_server()
-func configure_as_server (config configparser.Config){
+func configure_as_server(config configparser.Config) {
 	current_config := ""
 	server := initialise_server(config)
 	//Register server if it doesn't exist.
-	if ! server.Server_is_registered(){
-		server.Register_server()
+	if !server.Server_is_registered() {
+		err := server.Register_server()
+		if err != nil {
+			log.Fatal("Could not register with API server. Aborting.")
+		}
 	}
 	//Periodically check for new clients and update configuration if client list changes.
 	for true {
-		
-		pulled_config := server.Get_config_contents()
-		if pulled_config != current_config{
+
+		pulled_config, err := server.Get_config_contents()
+		if pulled_config != current_config && err == nil {
 			server.Update_config_file(pulled_config)
 			server.Sync_wireguard_conf()
 			current_config = pulled_config
+		} else {
+			log.Println("Unable to refresh client list.")
 		}
 		time.Sleep(60 * time.Second)
 	}
@@ -77,7 +85,7 @@ func configure_as_server (config configparser.Config){
 
 //Called by configure_as_server()
 //Creates a server object in localy memory.
-func initialise_server (config configparser.Config) apiserver.Server {
+func initialise_server(config configparser.Config) apiserver.Server {
 	var server apiserver.Server
 	server = apiserver.New(config)
 	return server
@@ -85,13 +93,12 @@ func initialise_server (config configparser.Config) apiserver.Server {
 
 //Called by configure_as_client()
 //Creates a list of peering instances for all peering instances specified with the configuration file.
-func initialise_peers (config configparser.Config) []peering.PeeringInstance {
+func initialise_peers(config configparser.Config) []peering.PeeringInstance {
 	var peering_instances []peering.PeeringInstance
-	for index := range config.PeeringList{
+	for index := range config.PeeringList {
 		var peers configparser.PeeringInstance
 		peers = config.PeeringList[index]
-		peering_instances= append(peering_instances, peering.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Name, peers.Server))
+		peering_instances = append(peering_instances, peering.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Name, peers.Server))
 	}
 	return peering_instances
 }
-
