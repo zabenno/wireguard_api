@@ -5,8 +5,10 @@ import (
 	"agent/keypair"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os/exec"
 )
@@ -59,24 +61,40 @@ func New(config configparser.Config) Server {
 }
 
 //Submits a peering request to the wireguard_api server.
-func (server Server) Register_server() {
+func (server Server) Register_server() error {
 	url := server.api_server + "/api/v1/server/add/"
 	request_str := server.generate_peering_request()
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte(request_str)))
 	if err != nil {
 		panic(err)
 	}
+
 	req.Header.Set("Content-Type", "application/json;")
 	req.SetBasicAuth(server.api_username, server.api_password)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
 	}
-	if resp.StatusCode != 201 {
-		panic(resp.StatusCode)
+
+	fmt.Print(resp.StatusCode)
+
+	if resp.StatusCode == 500 {
+		log.Print(fmt.Sprintf("API server was not able create server %s.", server.server_name))
+		return errors.New("ApiServerError.")
+	} else if resp.StatusCode == 400 {
+		log.Print(fmt.Sprintf("Client sent bad request to server when attempting to register server %s.", server.server_name))
+		return errors.New("RequestFormatError")
+	} else if resp.StatusCode == 401 {
+		log.Print("API server rejected credentials.")
+		return errors.New("Unauthorised")
+	} else if resp.StatusCode != 201 {
+		log.Print(fmt.Sprintf("An unexpected error occured while registering server %s.", server.server_name))
+		return errors.New("Unknown")
 	}
+
+	return nil
 }
 
 //Creates the content that will be placed in the body of the REST API call to the wireguard_api server.
@@ -112,7 +130,7 @@ func (server Server) Server_is_registered() bool {
 	req.Header.Set("Content-Type", "application/json;")
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -164,26 +182,28 @@ func (server Server) Update_config_file(config string) {
 }
 
 //Creates the contents for the peers section of the server configuration file for all clients assigned to it.
-func (server Server) Get_config_contents() string {
+func (server Server) Get_config_contents() (string, error) {
 	response := server.get_interface_config()
-	peers := server.get_peers()
+	peers, err := server.get_peers()
+	if err != nil {
+		return "", err
+	}
 	for index := range peers.Clients {
 		response += fmt.Sprintf("[Peer]\nPublicKey = %s\nAllowedIPs = %s/32\n\n", peers.Clients[index].Publickey, peers.Clients[index].IPAddress)
 	}
-	return response
+	return response, nil
 }
 
 //Creates the contents for the interface section of the wireguard server configuration
 func (server Server) get_interface_config() string {
 	response := "[Interface]\n"
-	response += fmt.Sprintf("Address = %s/%s\n", server.subnet.NetworkAddress, server.subnet.NetworkMask)
-	response += fmt.Sprintf("ListenPort = %s\n", server.endpointport)
 	response += fmt.Sprintf("PrivateKey = %s\n\n", server.private_key)
+	response += fmt.Sprintf("ListenPort = %s\n", server.endpointport)
 	return response
 }
 
 //Retrieves the required information for the server to configure itself to establish connections to all assigned clients.
-func (server Server) get_peers() Clients {
+func (server Server) get_peers() (Clients, error) {
 	url := server.api_server + "/api/v1/server/config/"
 	var body = []byte(fmt.Sprintf("{ \"server_name\":\"%s\" }", server.server_name))
 	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
@@ -197,7 +217,21 @@ func (server Server) get_peers() Clients {
 	req.Header.Set("Content-Type", "application/json;")
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
+	}
+
+	if resp.StatusCode == 500 {
+		log.Print(fmt.Sprintf("API server was not able retrieve server %s config.", server.server_name))
+		return Clients{}, errors.New("ApiServerError")
+	} else if resp.StatusCode == 404 {
+		log.Print(fmt.Sprintf("API server could not find details for server %s.", server.server_name))
+		return Clients{}, errors.New("RequestFormatError")
+	} else if resp.StatusCode == 401 {
+		log.Print("API server rejected credentials.")
+		return Clients{}, errors.New("Unauthorised")
+	} else if resp.StatusCode != 200 {
+		log.Print(fmt.Sprintf("An unexpected error occured while retrieving peers for server %s.", server.server_name))
+		return Clients{}, errors.New("Unknown")
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -213,5 +247,5 @@ func (server Server) get_peers() Clients {
 		panic(peering_err)
 	}
 
-	return jso
+	return jso, nil
 }

@@ -153,6 +153,7 @@ class Wireguard_database():
         """
         This method creates a wireguard server that will be ready to have clients added to it upon the completion of this method.
         To achieve this create_subnet() is called from within this method, passing through the relevant parmaters.
+        Returns: HTTP Code representing result.
         """
         try:
             if not self.validate_wg_key(public_key):
@@ -165,11 +166,14 @@ class Wireguard_database():
         except (ValueError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not add server {server_name}: Public key value \"{public_key}\" invalid.")
+            return 400
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not add server {server_name}: %s", error)
+            return 500
         else:
             logging.debug(f"Successfully added server: {server_name}.")
+            return 201
 
     def delete_server(self, server_name):
         """
@@ -205,6 +209,7 @@ class Wireguard_database():
         This method creates a client-server peering that will be ready to connect upon the server refreshing its configuration.
         In the case a peering already exists, this method will overwrite the old peering.
         This method calls assign_lease() to allow for the client to connect to the server.
+        Returns: HTTP Code representing result.
         """
         try:
             if not self.validate_wg_key(public_key):
@@ -218,11 +223,14 @@ class Wireguard_database():
         except (ValueError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create peering {client_name}-{server_name}: Public key value \"{public_key}\" invalid.")
+            return 400
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create peering {client_name}-{server_name}: %s", error)
+            return 500
         else:
             logging.debug(f"Successfully added peering: {client_name}-{server_name}.")
+            return 201
         
 
     def delete_client(self, client_name):
