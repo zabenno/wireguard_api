@@ -155,6 +155,20 @@ func (server Server) Server_is_registered() bool {
 
 }
 
+func (server Server) Create_interface() {
+	wireguard_quick_path, err := exec.LookPath("wg-quick")
+
+	if err != nil {
+		panic(err)
+	} else {
+		command := exec.Command(wireguard_quick_path, "up", fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name))
+		_, err := command.CombinedOutput()
+		if err != nil {
+			log.Printf("Failed to bring interface up with error: %s", err)
+		}
+	}
+}
+
 //Refreshes the in memory configuration of the wireguard server.
 func (server Server) Sync_wireguard_conf() {
 	wireguard_path, err := exec.LookPath("wg")
@@ -197,8 +211,15 @@ func (server Server) Get_config_contents() (string, error) {
 //Creates the contents for the interface section of the wireguard server configuration
 func (server Server) get_interface_config() string {
 	response := "[Interface]\n"
-	response += fmt.Sprintf("PrivateKey = %s\n\n", server.private_key)
+	response += fmt.Sprintf("PrivateKey = %s\n", server.private_key)
 	response += fmt.Sprintf("ListenPort = %s\n", server.endpointport)
+	return response
+}
+
+//Creates the wireguard configuration file for wg-quick to work.
+func (server Server) Get_wgquick_config() string {
+	response := server.get_interface_config()
+	response += fmt.Sprintf("Address = %s/%s\n", server.subnet.NetworkAddress, server.subnet.NetworkMask)
 	return response
 }
 
