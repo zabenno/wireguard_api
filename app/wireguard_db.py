@@ -211,19 +211,17 @@ class Wireguard_database():
         This method calls assign_lease() to allow for the client to connect to the server.
         Returns: HTTP Code representing result.
         """
+        if not self.validate_wg_key(public_key):
+            self.db_connection.rollback()
+            logging.error(f"Could not create peering {client_name}-{server_name}: Public key value \"{public_key}\" invalid.")
+            return 400
         try:
-            if not self.validate_wg_key(public_key):
-                raise ValueError
             self.delete_client_peering(client_name, server_name)
             self.cursor.execute("""
             INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s)
             ;""", (client_name, public_key, server_name,))
             self.db_connection.commit()
             self.assign_lease(client_name, server_name)
-        except (ValueError) as error:
-            self.db_connection.rollback()
-            logging.error(f"Could not create peering {client_name}-{server_name}: Public key value \"{public_key}\" invalid.")
-            return 400
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create peering {client_name}-{server_name}: %s", error)
@@ -434,5 +432,5 @@ class Wireguard_database():
         """
         Returns whether a given string represents a valid wireguard key.
         """
-        pattern = re.compile("^[0-9a-zA-Z\+/]{43}=$")
+        pattern = re.compile("^[0-9a-zA-Z\+/]{43}=")
         return pattern.match(key) != None
