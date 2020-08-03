@@ -122,6 +122,7 @@ class Wireguard_database():
                 subnetID serial PRIMARY KEY,
                 serverID VARCHAR (20),
                 allowed_ips VARCHAR,
+                server_ip VARCHAR (15) UNIQUE,
                 network_address VARCHAR (15) UNIQUE,
                 network_mask INT,
                 n_reserved_ips INT,
@@ -194,9 +195,11 @@ class Wireguard_database():
         This method should never be called directly as it is called from within the create_server() method.
         """
         try:
+            server_ip = str(ipaddress.IPv4Network(network_address + "/" + str(network_mask))[1])
+            logging.debug(server_ip)
             self.cursor.execute("""
-            INSERT INTO subnets (serverID, network_address, network_mask, n_reserved_ips, allowed_ips ) VALUES ( %s, %s, %s, %s, %s )
-            ;""", (server_name, network_address, network_mask, n_reserved_ips, allowed_ips,))
+            INSERT INTO subnets (serverID, server_ip, network_address, network_mask, n_reserved_ips, allowed_ips ) VALUES ( %s, %s, %s, %s, %s, %s )
+            ;""", (server_name, server_ip, network_address, network_mask, n_reserved_ips, allowed_ips,))
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -434,3 +437,13 @@ class Wireguard_database():
         """
         pattern = re.compile("^[0-9a-zA-Z\+/]{43}=")
         return pattern.match(key) != None
+    
+    def get_server_wireguard_ip(self, server_name):
+        subnetID = self.get_subnet_id(server_name)
+        response = {}
+        try:
+            self.cursor.execute("SELECT server_ip FROM subnets WHERE subnetID = %s", (subnetID,))
+            response["server_wg_ip"] = self.cursor.fetchone()[0]
+        except (Exception, psycopg2.DatabaseError) as error:
+            logging.error(f"Could not pull servers wireguard ip from database: %s", error)
+        return response
