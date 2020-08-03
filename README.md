@@ -1,12 +1,16 @@
 # wireguard_api
 A REST API server to broker basic connections between clients and servers.
 
+This documentation is in real need of a refresh, will look at doing this in the near future.
+
 ## Overview
-The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers. Currently the agent and server only generate the configuration files required to create/configure wireguard interfaces. The creation of these interfaces is not handled by the agent, for this, see the wireguard command `wg-quick`. This project could be greatly expanded and has a decent amount of assumptions.
+The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers.
+Servers are fully managed via the agent with their interface created and regularly updated.
+Currently for clients, the agent only generates the configuration files required to create/configure wireguard interfaces. The creation of these interfaces is not handled by the agent, for this, see the wireguard command `wg-quick`. 
 
 Warnings: 
-* Code could really use a clean up. Some refactoring, authentication, and improved error handling and logging.
-* User data passed to SQL queries is sanitised, however no checks are performed to ensure input data makes contextual sense.
+* Code really needs a clean up. Some refactoring, authentication, and improved error handling and logging.
+* User data passed to SQL queries is sanitised, however few checks are performed to ensure input data makes contextual sense.
 * Due to the way the `wg syncconf` parses config, an invalid client public key will prevent the server from refreshing it's client list. This will fail with a misleading error suggesting the problem lies within the first lines of the generated file.
 * TLS is not handled by this app so a proxy is a must.
 
@@ -142,6 +146,22 @@ HTTP: 200
 HTTP: 500
 
 HTTP: 404
+### /api/v1/server/wireguard_ip/
+This call is to pull down the information required for configuring the server to connect to registered peers.
+#### Call Content
+```json
+{
+    "server_name":"name"
+}
+```
+#### Responses
+HTTP: 200
+```json
+{
+    "server_wg_ip": "xxx.xxx.xxx.xxx"
+}
+```
+HTTP: 500
 ### /api/v1/client/config/
 This call is to pull down the configuration of a specified client-server peer.
 #### Call Content
