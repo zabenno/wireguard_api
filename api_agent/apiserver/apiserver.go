@@ -1,42 +1,42 @@
 package apiserver
 
-import(
-	"bytes"
-	"net/http"
-	"fmt"
-	"io/ioutil"
-	"encoding/json"
+import (
 	"agent/configparser"
 	"agent/keypair"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os/exec"
 )
 
-type Client struct{
+type Client struct {
 	IPAddress string `json:"ip_address"`
 	Publickey string `json:"public_key"`
 }
 
-type Clients struct{
+type Clients struct {
 	Clients []Client `json:"peers"`
 }
 
-type Server struct{
-	api_server string
-	api_username string
-	api_password string
-	server_name string
-	public_key string
-	private_key string
+type Server struct {
+	api_server      string
+	api_username    string
+	api_password    string
+	server_name     string
+	public_key      string
+	private_key     string
 	endpointaddress string
-	endpointport string
-	subnet Subnet
+	endpointport    string
+	subnet          Subnet
 }
 
 type Subnet struct {
 	NetworkAddress string
-	NetworkMask string
+	NetworkMask    string
 	NumReservedIps int
-	AllowedIps string
+	AllowedIps     string
 }
 
 type NewServerRequest struct {
@@ -64,61 +64,61 @@ func (server Server) Register_server() {
 	request_str := server.generate_peering_request()
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte(request_str)))
 	if err != nil {
-        panic(err)
+		panic(err)
 	}
 	req.Header.Set("Content-Type", "application/json;")
 	req.SetBasicAuth(server.api_username, server.api_password)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-    if err != nil {
-        panic(err)
+	if err != nil {
+		panic(err)
 	}
-	if resp.StatusCode != 201{
+	if resp.StatusCode != 201 {
 		panic(resp.StatusCode)
 	}
 }
 
 //Creates the content that will be placed in the body of the REST API call to the wireguard_api server.
-func (server Server) generate_peering_request () string {
+func (server Server) generate_peering_request() string {
 	var new_server_request = NewServerRequest{
-		ServerName: server.server_name,
-		NetworkAddress: server.subnet.NetworkAddress,
-		NetworkMask: server.subnet.NetworkMask,
-		PublicKey: server.public_key,
+		ServerName:      server.server_name,
+		NetworkAddress:  server.subnet.NetworkAddress,
+		NetworkMask:     server.subnet.NetworkMask,
+		PublicKey:       server.public_key,
 		EndpointAddress: server.endpointaddress,
-		EndpointPort: server.endpointport,
-		NReservedIps: server.subnet.NumReservedIps,
-		AllowedIps: server.subnet.AllowedIps,
+		EndpointPort:    server.endpointport,
+		NReservedIps:    server.subnet.NumReservedIps,
+		AllowedIps:      server.subnet.AllowedIps,
 	}
 	new_server_request_JSON, err := json.MarshalIndent(new_server_request, "", "	")
 	if err != nil {
-        panic(err)
+		panic(err)
 	}
 	return string(new_server_request_JSON)
 }
 
 //Returns bool based on if the server is registered with the wireguard api or not.
-func (server Server) Server_is_registered () bool {
+func (server Server) Server_is_registered() bool {
 	url := server.api_server + "/api/v1/server/list_all"
 	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer([]byte("")))
 	if err != nil {
-        panic(err)
+		panic(err)
 	}
-	
+
 	client := &http.Client{}
 
 	req.SetBasicAuth(server.api_username, server.api_password)
 	req.Header.Set("Content-Type", "application/json;")
-    resp, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-        panic(err)
-    }
+		panic(err)
+	}
 	bodyStr := string(bodyBytes)
 
 	bytes := []byte(bodyStr)
@@ -138,7 +138,7 @@ func (server Server) Server_is_registered () bool {
 }
 
 //Refreshes the in memory configuration of the wireguard server.
-func (server Server) Sync_wireguard_conf () {
+func (server Server) Sync_wireguard_conf() {
 	wireguard_path, err := exec.LookPath("wg")
 
 	if err != nil {
@@ -154,7 +154,7 @@ func (server Server) Sync_wireguard_conf () {
 }
 
 //Updates the on disk configuration for the wireguard server.
-func (server Server) Update_config_file (config string){
+func (server Server) Update_config_file(config string) {
 	file_path := fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name)
 
 	err := ioutil.WriteFile(file_path, []byte(config), 0600)
@@ -164,7 +164,7 @@ func (server Server) Update_config_file (config string){
 }
 
 //Creates the contents for the peers section of the server configuration file for all clients assigned to it.
-func (server Server) Get_config_contents () string {
+func (server Server) Get_config_contents() string {
 	response := server.get_interface_config()
 	peers := server.get_peers()
 	for index := range peers.Clients {
@@ -173,8 +173,8 @@ func (server Server) Get_config_contents () string {
 	return response
 }
 
-//Creates the contents for the interface section of the wireguard server configuration 
-func (server Server) get_interface_config () string {
+//Creates the contents for the interface section of the wireguard server configuration
+func (server Server) get_interface_config() string {
 	response := "[Interface]\n"
 	response += fmt.Sprintf("Address = %s/%s\n", server.subnet.NetworkAddress, server.subnet.NetworkMask)
 	response += fmt.Sprintf("ListenPort = %s\n", server.endpointport)
@@ -183,27 +183,27 @@ func (server Server) get_interface_config () string {
 }
 
 //Retrieves the required information for the server to configure itself to establish connections to all assigned clients.
-func (server Server) get_peers () Clients {
+func (server Server) get_peers() Clients {
 	url := server.api_server + "/api/v1/server/config/"
 	var body = []byte(fmt.Sprintf("{ \"server_name\":\"%s\" }", server.server_name))
 	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
 	if err != nil {
-        panic(err)
+		panic(err)
 	}
-	
+
 	client := &http.Client{}
 
 	req.SetBasicAuth(server.api_username, server.api_password)
 	req.Header.Set("Content-Type", "application/json;")
-    resp, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-        panic(err)
-    }
+		panic(err)
+	}
 	bodyStr := string(bodyBytes)
 
 	bytes := []byte(bodyStr)
