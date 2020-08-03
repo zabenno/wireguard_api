@@ -68,6 +68,12 @@ func configure_as_server(config configparser.Config) {
 			log.Fatal("Could not register with API server. Aborting.")
 		}
 	}
+
+	//Initial run to bring interface up.
+	pulled_config := server.Get_wgquick_config()
+	server.Update_config_file(pulled_config)
+	server.Create_interface()
+
 	//Periodically check for new clients and update configuration if client list changes.
 	for true {
 
