@@ -227,7 +227,7 @@ func (server Server) Get_wgquick_config() string {
 	return response
 }
 
-//Returns bool based on if the server is registered with the wireguard api or not.
+//Fetches the IP address used by the wireguard interface.
 func (server Server) get_wg_ip() string {
 	url := server.api_server + "/api/v1/server/wireguard_ip/"
 	var body = []byte(fmt.Sprintf("{ \"server_name\":\"%s\" }", server.server_name))
