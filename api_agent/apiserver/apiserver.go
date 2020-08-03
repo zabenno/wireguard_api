@@ -22,6 +22,10 @@ type Clients struct {
 	Clients []Client `json:"peers"`
 }
 
+type Wg_ip struct {
+	Wg_ip string `json:"server_wg_ip"`
+}
+
 type Server struct {
 	api_server      string
 	api_username    string
@@ -219,8 +223,42 @@ func (server Server) get_interface_config() string {
 //Creates the wireguard configuration file for wg-quick to work.
 func (server Server) Get_wgquick_config() string {
 	response := server.get_interface_config()
-	response += fmt.Sprintf("Address = %s/%s\n", server.subnet.NetworkAddress, server.subnet.NetworkMask)
+	response += fmt.Sprintf("Address = %s/%s\n", server.get_wg_ip(), server.subnet.NetworkMask)
 	return response
+}
+
+//Fetches the IP address used by the wireguard interface.
+func (server Server) get_wg_ip() string {
+	url := server.api_server + "/api/v1/server/wireguard_ip/"
+	var body = []byte(fmt.Sprintf("{ \"server_name\":\"%s\" }", server.server_name))
+	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
+	if err != nil {
+		panic(err)
+	}
+
+	client := &http.Client{}
+
+	req.SetBasicAuth(server.api_username, server.api_password)
+	req.Header.Set("Content-Type", "application/json;")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	bodyStr := string(bodyBytes)
+
+	log.Print(bodyStr)
+	bytes := []byte(bodyStr)
+	var jso Wg_ip
+	peering_err := json.Unmarshal(bytes, &jso)
+	if peering_err != nil {
+		panic(peering_err)
+	}
+	return jso.Wg_ip
 }
 
 //Retrieves the required information for the server to configure itself to establish connections to all assigned clients.

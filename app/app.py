@@ -69,6 +69,17 @@ def create_server():
     response_code = test.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'], content['allowed_ips'])
     return "", response_code
 
+#Create a new wireguard server.
+@app.route('/api/v1/server/wireguard_ip/', methods=['GET'])
+@auth_required
+def get_server_wireguard_ip():
+    content = request.json
+    response = test.get_server_wireguard_ip(content['server_name'])
+    if len(response) > 0:
+        return response, 200
+    else:
+        return "", 404
+
 #Create a new client-server peering.
 @app.route('/api/v1/client/add/', methods=['POST'])
 @auth_required

@@ -126,7 +126,7 @@ func (peering PeeringInstance) submit_peering_request(request_str string) error 
 
 //Creates the contents of a wireguard configuration file for the client-server peering instance.
 func (peering PeeringInstance) generate_conf(peering_details Peering) string {
-	conf := fmt.Sprintf("[Interface]\nAddress = %s\nPrivateKey = %s\n\n[Peer]\nPublic_key = %s\nAllowedIPs = %s\nEndpoint = %s:%d",
+	conf := fmt.Sprintf("[Interface]\nAddress = %s\nPrivateKey = %s\n\n[Peer]\nPublicKey = %s\nAllowedIPs = %s\nEndpoint = %s:%d",
 		peering_details.Subnet.Lease, peering.private_key, peering_details.Server.Public_key, peering_details.Subnet.Allowed_ips,
 		peering_details.Server.Endpoint_address, peering_details.Server.Endpoint_port)
 
