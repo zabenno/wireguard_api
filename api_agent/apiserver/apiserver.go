@@ -82,8 +82,6 @@ func (server Server) Register_server() error {
 		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
 	}
 
-	fmt.Print(resp.StatusCode)
-
 	if resp.StatusCode == 500 {
 		log.Print(fmt.Sprintf("API server was not able create server %s.", server.server_name))
 		return errors.New("ApiServerError.")
