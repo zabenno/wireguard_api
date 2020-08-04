@@ -11,6 +11,7 @@ import (
 
 //Checks whether a host is configured to be a client or server then hands over to other methods.
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime)
 	ensure_conf_dir()
 	var config = configparser.New("./test.yaml")
 	if config.Type == "client" {

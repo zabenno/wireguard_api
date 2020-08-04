@@ -46,8 +46,6 @@ type PeeringInstance struct {
 
 //Used to create an instance of a client-server peering in local memory.
 func New(api_server, api_username, api_password, client_name, server_name string) PeeringInstance {
-	log.SetPrefix("ERROR: ")
-	log.SetFlags(log.Ldate | log.Ltime)
 	keypair := keypair.New(server_name)
 	peering_instance := PeeringInstance{api_server, api_username, api_password, client_name, server_name, keypair.Public_key, keypair.Private_key}
 	return peering_instance
