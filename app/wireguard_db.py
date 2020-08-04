@@ -156,18 +156,15 @@ class Wireguard_database():
         To achieve this create_subnet() is called from within this method, passing through the relevant parmaters.
         Returns: HTTP Code representing result.
         """
+        if not self.validate_wg_key(public_key):
+            logging.error(f"Could not add server {server_name}: Public key value \"{public_key}\" invalid.")
+            return 400
         try:
-            if not self.validate_wg_key(public_key):
-                raise ValueError
             self.cursor.execute("""
             INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s)
             """, (server_name, public_key, endpoint_address, endpoint_port))
             self.db_connection.commit()
             self.create_subnet(server_name, network_address, network_mask, n_reserved_ips, allowed_ips)
-        except (ValueError) as error:
-            self.db_connection.rollback()
-            logging.error(f"Could not add server {server_name}: Public key value \"{public_key}\" invalid.")
-            return 400
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not add server {server_name}: %s", error)
@@ -215,7 +212,6 @@ class Wireguard_database():
         Returns: HTTP Code representing result.
         """
         if not self.validate_wg_key(public_key):
-            self.db_connection.rollback()
             logging.error(f"Could not create peering {client_name}-{server_name}: Public key value \"{public_key}\" invalid.")
             return 400
         try:
