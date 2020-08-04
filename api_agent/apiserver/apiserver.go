@@ -82,8 +82,6 @@ func (server Server) Register_server() error {
 		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
 	}
 
-	fmt.Print(resp.StatusCode)
-
 	if resp.StatusCode == 500 {
 		log.Print(fmt.Sprintf("API server was not able create server %s.", server.server_name))
 		return errors.New("ApiServerError.")
@@ -199,7 +197,7 @@ func (server Server) Update_config_file(config string) {
 	}
 }
 
-//Creates the contents for the peers section of the server configuration file for all clients assigned to it.
+//Creates the contents for the configuration file to be used by `wg syncconf`
 func (server Server) Get_config_contents() (string, error) {
 	response := server.get_interface_config()
 	peers, err := server.get_peers()
