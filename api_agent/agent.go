@@ -82,8 +82,10 @@ func configure_as_server(config configparser.Config) {
 			server.Update_config_file(pulled_config)
 			server.Sync_wireguard_conf()
 			current_config = pulled_config
+		} else if err != nil {
+			log.Println("An error occured preventing a refresh of the configuration.")
 		} else {
-			log.Println("Unable to refresh client list.")
+			log.Println("No change to configuration detected.")
 		}
 		time.Sleep(60 * time.Second)
 	}
