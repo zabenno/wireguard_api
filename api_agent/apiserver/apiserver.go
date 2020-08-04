@@ -197,7 +197,7 @@ func (server Server) Update_config_file(config string) {
 	}
 }
 
-//Creates the contents for the peers section of the server configuration file for all clients assigned to it.
+//Creates the contents for the configuration file to be used by `wg syncconf`
 func (server Server) Get_config_contents() (string, error) {
 	response := server.get_interface_config()
 	peers, err := server.get_peers()
