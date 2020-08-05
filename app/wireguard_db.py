@@ -72,12 +72,15 @@ class Wireguard_database():
             self.db_connection = psycopg2.connect(host = db_server, database = db_database, port = db_port, user = db_user, password = db_password)
             self.cursor = self.db_connection.cursor()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Unable to connect to database, failed with error: %s", error)
+            logging.fatal(f"Unable to connect to database, failed with error: %s", error)
+            self.db_connection = None
         else:
             logging.debug("Connected to database.")
 
         if not self.validate_database():
-            self.format_database()
+            if not self.format_database():
+                logging.fatal("Failed to format database.")
+                raise Exception("Could not format database.")
         else:
             logging.debug("Found tables within database.")
 
@@ -148,8 +151,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create database, failed with error: %s", error)
+            return False
         else:
             logging.debug("Successfully formatted database.")
+            return True
 
     def create_server(self, server_name, network_address, network_mask, public_key, endpoint_address, endpoint_port, n_reserved_ips, allowed_ips):
         """

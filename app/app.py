@@ -15,7 +15,12 @@ api_username = os.environ.get('API_USER')
 with open(os.environ.get('API_PASSWORD_PATH'),'r') as f:
     api_password = f.read()
 
-wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
+try:
+    wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
+except (Exception) as error:
+    logging.fatal("An error occured while connecting to the database.")
+    os._exit(1)
+
 app = Flask(__name__)
 
 #VERY basic implementation of http-basic authentication.
