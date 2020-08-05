@@ -94,6 +94,7 @@ class Wireguard_database():
                 return False
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not read from database, failed with error: %s", error)
+            return False
 
     def format_database(self):
         try:
