@@ -77,10 +77,13 @@ class Wireguard_database():
         else:
             logging.debug("Connected to database.")
 
+        if self.db_connection == None:
+            raise Exception("Unreachable")
+
         if not self.validate_database():
             if not self.format_database():
                 logging.fatal("Failed to format database.")
-                raise Exception("Could not format database.")
+                raise Exception("Corrupt")
         else:
             logging.debug("Found tables within database.")
 
