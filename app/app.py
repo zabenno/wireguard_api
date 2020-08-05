@@ -25,7 +25,7 @@ def auth_required(f):
         auth = request.authorization
         if auth and auth.username == api_username and auth.password == api_password:
             return f(*args, **kwargs)
-        return "Invalid login.", 401, {'WWW-Authenticate' : 'Basic realm="Login Required"'}
+        return "", 401, {'WWW-Authenticate' : 'Basic realm="Login Required"'}
     return decorated
 
 
@@ -96,9 +96,9 @@ def delete_client():
     content = request.json
     try:
         wireguard_state.delete_client(content['client_name'])
-        return f"Deleted {content['client_name']} client.", 200
+        return "", 200
     except (Exception):
-        return f"Failed to create {content['client_name']} client.", 500
+        return "", 500
 
 #Removes a server and any row in the database referencing it.
 @app.route('/api/v1/server/delete/', methods=['POST'])
@@ -107,9 +107,9 @@ def delete_server():
     content = request.json
     try:
         wireguard_state.delete_server(content['server_name'])
-        return f"Deleted {content['server_name']} server.", 200
+        return "", 200
     except (Exception):
-        return f"Failed to create {content['server_name']} server.", 500
+        return "", 500
 
 #Removes the peering instance of a specified client from a specified server.
 @app.route('/api/v1/server/remove_peer/', methods=['POST'])
@@ -118,9 +118,9 @@ def remove_peer():
     content = request.json
     try:
         wireguard_state.delete_client_peering(content['client_name'], content['server_name'])
-        return f"Removed peer {content['client_name']} from {content['server_name']} server.", 200
+        return "", 200
     except (Exception):
-        return f"Failed to remove peer {content['client_name']} from {content['server_name']} server.", 500
+        return "", 500
 
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=5000)
