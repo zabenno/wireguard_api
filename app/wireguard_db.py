@@ -72,12 +72,18 @@ class Wireguard_database():
             self.db_connection = psycopg2.connect(host = db_server, database = db_database, port = db_port, user = db_user, password = db_password)
             self.cursor = self.db_connection.cursor()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Unable to connect to database, failed with error: %s", error)
+            logging.fatal(f"Unable to connect to database, failed with error: %s", error)
+            self.db_connection = None
         else:
             logging.debug("Connected to database.")
 
+        if self.db_connection == None:
+            raise Exception("Unreachable")
+
         if not self.validate_database():
-            self.format_database()
+            if not self.format_database():
+                logging.fatal("Failed to format database.")
+                raise Exception("Corrupt")
         else:
             logging.debug("Found tables within database.")
 
@@ -94,6 +100,7 @@ class Wireguard_database():
                 return False
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not read from database, failed with error: %s", error)
+            return False
 
     def format_database(self):
         try:
@@ -147,8 +154,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create database, failed with error: %s", error)
+            return False
         else:
             logging.debug("Successfully formatted database.")
+            return True
 
     def create_server(self, server_name, network_address, network_mask, public_key, endpoint_address, endpoint_port, n_reserved_ips, allowed_ips):
         """
@@ -156,13 +165,14 @@ class Wireguard_database():
         To achieve this create_subnet() is called from within this method, passing through the relevant parmaters.
         Returns: HTTP Code representing result.
         """
+        sql_query = "INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s);"
+        sql_data = (server_name, public_key, endpoint_address, endpoint_port)
+
         if not self.validate_wg_key(public_key):
             logging.error(f"Could not add server {server_name}: Public key value \"{public_key}\" invalid.")
             return 400
         try:
-            self.cursor.execute("""
-            INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s)
-            """, (server_name, public_key, endpoint_address, endpoint_port))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
             self.create_subnet(server_name, network_address, network_mask, n_reserved_ips, allowed_ips)
         except (Exception, psycopg2.DatabaseError) as error:
@@ -177,8 +187,11 @@ class Wireguard_database():
         """
         This method removes all rows within the database that reference this server. This includes any subnet, clients, and leases assigned to it.
         """
+        sql_query = "DELETE FROM servers WHERE servers.serverID = %s;"
+        sql_data = (server_name,)
+
         try:
-            self.cursor.execute("DELETE FROM servers WHERE servers.serverID = %s;", (server_name,))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -191,12 +204,14 @@ class Wireguard_database():
         This method creates a subnet and assigns it to an existing server.
         This method should never be called directly as it is called from within the create_server() method.
         """
+        sql_query = "INSERT INTO subnets (serverID, server_ip, network_address, network_mask, n_reserved_ips, allowed_ips ) VALUES ( %s, %s, %s, %s, %s, %s );"
+        
         try:
             server_ip = str(ipaddress.IPv4Network(network_address + "/" + str(network_mask))[1])
+            sql_data = (server_name, server_ip, network_address, network_mask, n_reserved_ips, allowed_ips,)
+
             logging.debug(server_ip)
-            self.cursor.execute("""
-            INSERT INTO subnets (serverID, server_ip, network_address, network_mask, n_reserved_ips, allowed_ips ) VALUES ( %s, %s, %s, %s, %s, %s )
-            ;""", (server_name, server_ip, network_address, network_mask, n_reserved_ips, allowed_ips,))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -214,11 +229,13 @@ class Wireguard_database():
         if not self.validate_wg_key(public_key):
             logging.error(f"Could not create peering {client_name}-{server_name}: Public key value \"{public_key}\" invalid.")
             return 400
+
+        sql_query = "INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s);"
+        sql_data = (client_name, public_key, server_name,)
+
         try:
             self.delete_client_peering(client_name, server_name)
-            self.cursor.execute("""
-            INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s)
-            ;""", (client_name, public_key, server_name,))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
             self.assign_lease(client_name, server_name)
         except (Exception, psycopg2.DatabaseError) as error:
@@ -234,28 +251,40 @@ class Wireguard_database():
         """
         This method deletes all references to a specified client name. This will free any leases the client may have had and remove it from all servers.
         """
+
+        sql_query = "DELETE FROM clients WHERE clients.client_name = %s;"
+        sql_data = (client_name,)
+
         try:
-            self.cursor.execute("DELETE FROM clients WHERE clients.client_name = %s;", (client_name,))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete client {client_name}.: %s", error)
+            return False
         else:
             logging.debug(f"Succesfully deleted client {client_name}.")
+            return True
 
     def delete_client_peering(self, client_name, server_name):
         """
         This method deletes a single instance of peering between a specified client and server.
         This will free the lease that was used by the client to connect to the server.
         """
+
+        sql_query = "DELETE FROM clients WHERE clients.client_name = %s AND clients.serverID = %s;"
+        sql_data = (client_name, server_name,)
+
         try:
-            self.cursor.execute("DELETE FROM clients WHERE clients.client_name = %s AND clients.serverID = %s;", (client_name, server_name,))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete client-server peering of {client_name}-{server_name}.: %s", error)
+            return False
         else:
             logging.debug(f"Succesfully deleted client-server peer {client_name}-{server_name}.")
+            return True
 
     def assign_lease(self, client_name, server_name):
         """
@@ -265,11 +294,12 @@ class Wireguard_database():
         ip_address = self.get_next_ip(server_name)
         int_ip = self.ip_to_int(ip_address)
         clientID = self.get_client_id(client_name, server_name)
+
+        sql_query = "INSERT INTO leases (subnetID, clientID, ip_address) VALUES ((SELECT subnetID FROM subnets WHERE serverID = %s), %s, %s );"
+        sql_data =  (server_name, clientID, int_ip,)
+
         try:
-            self.cursor.execute("""
-            INSERT INTO leases (subnetID, clientID, ip_address) VALUES (
-            (SELECT subnetID FROM subnets WHERE serverID = %s),
-            %s, %s );""", (server_name, clientID, int_ip,))
+            self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
@@ -281,11 +311,16 @@ class Wireguard_database():
         """
         This method returns the next unassigned IP address from the subnet owned by a server.
         """
+
+        sql_reserved_ips_query = "SELECT leases.ip_address FROM subnets INNER JOIN leases ON subnets.subnetID = leases.subnetID WHERE subnets.serverID = %s;"
+        sql_reserved_ips_data = (server_name,)
+        sql_subnet_details_query = "SELECT network_address, network_mask, n_reserved_ips FROM subnets WHERE serverID = %s;"
+        sql_subnet_details_data = (server_name,)
+
         try:
-            self.cursor.execute("""SELECT leases.ip_address FROM subnets INNER JOIN leases ON subnets.subnetID = leases.subnetID 
-            WHERE subnets.serverID = %s;""", (server_name,))
+            self.cursor.execute(sql_reserved_ips_query, sql_reserved_ips_data)
             taken_ips = self.cursor.fetchall()
-            self.cursor.execute("SELECT network_address, network_mask, n_reserved_ips FROM subnets WHERE serverID = %s", (server_name,))
+            self.cursor.execute(sql_subnet_details_query, sql_subnet_details_data)
             network_address, network_mask, n_reserved_ips = self.cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Failed to retrieve details of subnet for client {server_name}: %s", error)
@@ -323,8 +358,10 @@ class Wireguard_database():
         Returns all columns of all rows within the clients table.
         """
         response = {}
+        sql_query = "SELECT * FROM clients;"
+
         try:
-            self.cursor.execute("SELECT * FROM clients;")
+            self.cursor.execute(sql_query)
             clients =  self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
@@ -340,8 +377,9 @@ class Wireguard_database():
         Returns all columns of all rows within the servers table.
         """
         response = {}
+        sql_query = "SELECT * FROM servers;"
         try:
-            self.cursor.execute("SELECT * FROM servers;")
+            self.cursor.execute(sql_query)
             servers = self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull server list from database: %s", error)
@@ -353,8 +391,11 @@ class Wireguard_database():
         """
         Returns all columns of all rows within the leases table.
         """
+
+        sql_query = "SELECT * FROM leases;"
+
         try:
-            self.cursor.execute("SELECT * FROM leases;")
+            self.cursor.execute(sql_query)
             return self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
@@ -363,8 +404,11 @@ class Wireguard_database():
         """
         Returns all columns of all rows within the subnets table.
         """
+
+        sql_query = "SELECT * FROM subnets;"
+
         try:
-            self.cursor.execute("SELECT * FROM subnets;")
+            self.cursor.execute(sql_query)
             return self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
@@ -373,8 +417,12 @@ class Wireguard_database():
         """
         Returns the Primary Key ID of the peering between the specified client and server.
         """
+
+        sql_query = "SELECT clientID FROM clients WHERE client_name = %s AND serverID = %s;"
+        sql_data = (client_name, server_name,)
+
         try:
-            self.cursor.execute("SELECT clientID FROM clients WHERE client_name = %s AND serverID = %s;", (client_name, server_name,))
+            self.cursor.execute(sql_query, sql_data)
             return self.cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
@@ -383,8 +431,12 @@ class Wireguard_database():
         """
         Returns the Primary Key ID of the subnet assigned to the specified server.
         """
+
+        sql_query = "SELECT subnetID FROM subnets WHERE serverID = %s;"
+        sql_data = (server_name,)
+
         try:
-            self.cursor.execute("SELECT subnetID FROM subnets WHERE serverID = %s;", (server_name,))
+            self.cursor.execute(sql_query, sql_data)
             return self.cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
@@ -394,14 +446,17 @@ class Wireguard_database():
         Returns all non-sensitive details required for a client to configure itself for the peering with a single server.
         """
         clientID = self.get_client_id(client_name, server_name)
+
+        sql_server_query = "SELECT public_key, endpoint_address, endpoint_port FROM servers WHERE serverID = %s;"
+        sql_server_data = (server_name,)
+        sql_subnet_query = "SELECT subnets.allowed_ips, leases.ip_address FROM subnets INNER JOIN leases ON leases.subnetID = subnets.subnetID WHERE leases.clientID = %s;"
+        sql_subnet_data = (clientID,)
+
         try:
-            self.cursor.execute("""SELECT public_key, endpoint_address, endpoint_port 
-            FROM servers WHERE serverID = %s;""", (server_name,))
+            self.cursor.execute(sql_server_query, sql_server_data)
             server_details = self.cursor.fetchone()
-            self.cursor.execute("""SELECT subnets.allowed_ips, leases.ip_address 
-            FROM subnets
-            INNER JOIN leases ON leases.subnetID = subnets.subnetID
-            WHERE leases.clientID = %s;""", (clientID,))
+
+            self.cursor.execute(sql_subnet_query, sql_subnet_data)
             subnet_details = self.cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client details from database: %s", error)
@@ -416,10 +471,12 @@ class Wireguard_database():
         """
         subnetID = self.get_subnet_id(server_name)
         response = {"peers": []}
+
+        sql_query = "SELECT clients.clientID, clients.public_key, leases.ip_address FROM clients INNER JOIN leases ON clients.clientID = leases.clientID WHERE subnetID = %s;"
+        sql_data = (subnetID,)
+
         try:
-            self.cursor.execute("""SELECT clients.clientID, clients.public_key, leases.ip_address 
-            FROM clients
-            INNER JOIN leases ON clients.clientID = leases.clientID WHERE subnetID = %s;""", (subnetID,))
+            self.cursor.execute(sql_query, sql_data)
             clients = self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
@@ -437,8 +494,12 @@ class Wireguard_database():
     def get_server_wireguard_ip(self, server_name):
         subnetID = self.get_subnet_id(server_name)
         response = {}
+
+        sql_query = "SELECT server_ip FROM subnets WHERE subnetID = %s"
+        sql_data = (subnetID,)
+
         try:
-            self.cursor.execute("SELECT server_ip FROM subnets WHERE subnetID = %s", (subnetID,))
+            self.cursor.execute(sql_query, sql_data)
             response["server_wg_ip"] = self.cursor.fetchone()[0]
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull servers wireguard ip from database: %s", error)

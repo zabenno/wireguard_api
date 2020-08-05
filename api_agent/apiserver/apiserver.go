@@ -249,7 +249,6 @@ func (server Server) get_wg_ip() string {
 	}
 	bodyStr := string(bodyBytes)
 
-	log.Print(bodyStr)
 	bytes := []byte(bodyStr)
 	var jso Wg_ip
 	peering_err := json.Unmarshal(bytes, &jso)
