@@ -99,10 +99,9 @@ def create_client():
 @auth_required
 def delete_client():
     content = request.json
-    try:
-        wireguard_state.delete_client(content['client_name'])
+    if wireguard_state.delete_client(content['client_name']):
         return "", 200
-    except (Exception):
+    else:
         return "", 500
 
 #Removes a server and any row in the database referencing it.
@@ -121,10 +120,9 @@ def delete_server():
 @auth_required
 def remove_peer():
     content = request.json
-    try:
-        wireguard_state.delete_client_peering(content['client_name'], content['server_name'])
+    if wireguard_state.delete_client_peering(content['client_name'], content['server_name']):
         return "", 200
-    except (Exception):
+    else:
         return "", 500
 
 if __name__ == "__main__":
