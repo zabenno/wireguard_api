@@ -15,7 +15,7 @@ api_username = os.environ.get('API_USER')
 with open(os.environ.get('API_PASSWORD_PATH'),'r') as f:
     api_password = f.read()
 
-test = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
+wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
 app = Flask(__name__)
 
 #VERY basic implementation of http-basic authentication.
@@ -32,12 +32,12 @@ def auth_required(f):
 @app.route('/api/v1/client/list_all', methods=["GET"])
 @auth_required
 def return_client_list():
-    return jsonify(test.list_clients())
+    return jsonify(wireguard_state.list_clients())
 
 @app.route('/api/v1/server/list_all', methods=["GET"])
 @auth_required
 def return_servers_list():
-    return jsonify(test.list_servers())
+    return jsonify(wireguard_state.list_servers())
 
 #Return all non-sensitive information required to configure a specified wireguard server.
 @app.route('/api/v1/server/config/', methods=["GET"])
@@ -45,7 +45,7 @@ def return_servers_list():
 def return_server_conf():
     content = request.json
     try:
-        response = test.get_server_config(content['server_name']), 200
+        response = wireguard_state.get_server_config(content['server_name']), 200
     except (Exception):
         return "", 500
     if len(response[0]) == 0:
@@ -57,7 +57,7 @@ def return_server_conf():
 def get_client_conf():
     content = request.json
     try:
-        return test.get_client_config(content['client_name'], content['server_name']), 200
+        return wireguard_state.get_client_config(content['client_name'], content['server_name']), 200
     except (Exception):
         return "", 500
 
@@ -66,7 +66,7 @@ def get_client_conf():
 @auth_required
 def create_server():
     content = request.json
-    response_code = test.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'], content['allowed_ips'])
+    response_code = wireguard_state.create_server(content['server_name'], content['network_address'], content['network_mask'], content['public_key'], content['endpoint_address'], content['endpoint_port'], content['n_reserved_ips'], content['allowed_ips'])
     return "", response_code
 
 #Create a new wireguard server.
@@ -74,7 +74,7 @@ def create_server():
 @auth_required
 def get_server_wireguard_ip():
     content = request.json
-    response = test.get_server_wireguard_ip(content['server_name'])
+    response = wireguard_state.get_server_wireguard_ip(content['server_name'])
     if len(response) > 0:
         return response, 200
     else:
@@ -85,7 +85,7 @@ def get_server_wireguard_ip():
 @auth_required
 def create_client():
     content = request.json
-    response_code = test.create_client(content['client_name'], content['server_name'], content['public_key'])
+    response_code = wireguard_state.create_client(content['client_name'], content['server_name'], content['public_key'])
     return "", response_code
 
 
@@ -95,7 +95,7 @@ def create_client():
 def delete_client():
     content = request.json
     try:
-        test.delete_client(content['client_name'])
+        wireguard_state.delete_client(content['client_name'])
         return f"Deleted {content['client_name']} client.", 200
     except (Exception):
         return f"Failed to create {content['client_name']} client.", 500
@@ -106,7 +106,7 @@ def delete_client():
 def delete_server():
     content = request.json
     try:
-        test.delete_server(content['server_name'])
+        wireguard_state.delete_server(content['server_name'])
         return f"Deleted {content['server_name']} server.", 200
     except (Exception):
         return f"Failed to create {content['server_name']} server.", 500
@@ -117,7 +117,7 @@ def delete_server():
 def remove_peer():
     content = request.json
     try:
-        test.delete_client_peering(content['client_name'], content['server_name'])
+        wireguard_state.delete_client_peering(content['client_name'], content['server_name'])
         return f"Removed peer {content['client_name']} from {content['server_name']} server.", 200
     except (Exception):
         return f"Failed to remove peer {content['client_name']} from {content['server_name']} server.", 500
