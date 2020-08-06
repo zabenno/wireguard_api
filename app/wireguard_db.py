@@ -168,9 +168,23 @@ class Wireguard_database():
         sql_query = "INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s);"
         sql_data = (server_name, public_key, endpoint_address, endpoint_port)
 
+        if not self.validate_ip(network_address):
+            logging.error(f"Could not add server {server_name}: {network_address} not a valid IP Address.")
+            return 400
+        if not self.validate_network_mask(network_mask):
+            logging.error(f"Could not add server {server_name}: {network_mask} not a valid network mask.")
+            return 400
         if not self.validate_wg_key(public_key):
             logging.error(f"Could not add server {server_name}: Public key value \"{public_key}\" invalid.")
             return 400
+        if not self.validate_ip(endpoint_address):
+            logging.error(f"Could not add server {server_name}: {endpoint_address} not a valid IP Address.")
+            return 400
+        if not self.validate_port(endpoint_port):
+            logging.error(f"Could not add server {server_name}: {endpoint_port} not a valid port number.")
+            return 400
+        
+
         try:
             self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
@@ -491,6 +505,25 @@ class Wireguard_database():
         pattern = re.compile("^[0-9a-zA-Z\+/]{43}=")
         return pattern.match(key) != None
     
+    def validate_ip(self, ip):
+        try:
+            ipaddress.IPv4Address(ip)
+            return True
+        except (Exception, ValueError):
+            return False
+
+    def validate_network_mask(self, mask):
+        try:
+            return mask > 0 and mask <=32
+        except Exception:
+            return False
+
+    def validate_port(self, port):
+        try:
+            return port > 1 and port <=65535
+        except Exception:
+            return False
+
     def get_server_wireguard_ip(self, server_name):
         subnetID = self.get_subnet_id(server_name)
         response = {}
