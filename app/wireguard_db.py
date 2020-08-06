@@ -210,8 +210,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete server {server_name}: %s", error)
+            return 500
         else:
             logging.debug(f"Succesfully deleted server {server_name}.")
+            return 200
     
     def create_subnet(self, server_name, network_address, network_mask, n_reserved_ips, allowed_ips):
         """
@@ -275,10 +277,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete client {client_name}.: %s", error)
-            return False
+            return 500
         else:
             logging.debug(f"Succesfully deleted client {client_name}.")
-            return True
+            return 200
 
     def delete_client_peering(self, client_name, server_name):
         """
@@ -295,10 +297,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete client-server peering of {client_name}-{server_name}.: %s", error)
-            return False
+            return 500
         else:
             logging.debug(f"Succesfully deleted client-server peer {client_name}-{server_name}.")
-            return True
+            return 200
 
     def assign_lease(self, client_name, server_name):
         """
