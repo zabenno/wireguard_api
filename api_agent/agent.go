@@ -19,7 +19,7 @@ func main() {
 	} else if config.Type == "server" {
 		configure_as_server(config)
 	} else {
-		panic("Wrong or no type specified.")
+		log.Fatal("Wrong or no type specified within configuration file.")
 	}
 }
 
@@ -37,7 +37,7 @@ func ensure_conf_dir() {
 	if !check_dir_exists("/etc/wireguard_api/") {
 		err := os.Mkdir("/etc/wireguard_api/", 0755)
 		if err != nil {
-			panic(err)
+			log.Fatal("Could not create configuration directory even though it doesn't exist.")
 		}
 	}
 }
@@ -61,7 +61,10 @@ func configure_as_client(config configparser.Config) {
 //Calls initialise_server()
 func configure_as_server(config configparser.Config) {
 	current_config := ""
-	server := initialise_server(config)
+	server, server_error := initialise_server(config)
+	if server_error != nil {
+		log.Fatal("Could not create server. Aborting.")
+	}
 	//Register server if it doesn't exist.
 	if !server.Server_is_registered() {
 		err := server.Register_server()
@@ -94,10 +97,13 @@ func configure_as_server(config configparser.Config) {
 
 //Called by configure_as_server()
 //Creates a server object in localy memory.
-func initialise_server(config configparser.Config) apiserver.Server {
-	var server apiserver.Server
-	server = apiserver.New(config)
-	return server
+func initialise_server(config configparser.Config) (apiserver.Server, error) {
+	server, server_error := apiserver.New(config)
+	if server_error != nil {
+		log.Print("Failed to initialise server.")
+		return apiserver.Server{}, server_error
+	}
+	return server, nil
 }
 
 //Called by configure_as_client()
@@ -107,7 +113,12 @@ func initialise_peers(config configparser.Config) []peering.PeeringInstance {
 	for index := range config.PeeringList {
 		var peers configparser.PeeringInstance
 		peers = config.PeeringList[index]
-		peering_instances = append(peering_instances, peering.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Name, peers.Server))
+		peering_instance, peering_error := peering.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Name, peers.Server)
+		if peering_error != nil {
+			log.Printf("Failed to peer to %s", peers.Server)
+		} else {
+			peering_instances = append(peering_instances, peering_instance)
+		}
 	}
 	return peering_instances
 }
