@@ -41,15 +41,15 @@ type Config struct {
 
 //Creates a configuration object from the file path given.
 func New(conf_file_path string) Config {
-	configuration, err := ioutil.ReadFile(conf_file_path)
-	if err != nil {
-		log.Fatal(err)
+	configuration, read_error := ioutil.ReadFile(conf_file_path)
+	if read_error != nil {
+		log.Fatalf("Failed to read configuration file with error: %s", read_error)
 	}
 
 	var conf Config
-	err = yaml.Unmarshal(configuration, &conf)
-	if err != nil {
-		panic(err)
+	parser_error := yaml.Unmarshal(configuration, &conf)
+	if parser_error != nil {
+		log.Fatalf("Failed to parse configuration file with error: %s", parser_error)
 	}
 
 	return conf
