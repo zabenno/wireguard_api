@@ -253,7 +253,9 @@ class Wireguard_database():
             self.delete_client_peering(client_name, server_name)
             self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
-            self.assign_lease(client_name, server_name)
+            if not self.assign_lease(client_name, server_name):
+                self.delete_client_peering(client_name, server_name)
+                return 500
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create peering {client_name}-{server_name}: %s", error)
@@ -320,8 +322,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not assign lease to client {client_name}: %s", error)
+            return False
         else:
             logging.debug(f"Successfully added client: {client_name}.")
+            return True
 
     def get_next_ip(self, server_name):
         """
