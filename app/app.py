@@ -9,11 +9,11 @@ server = os.environ.get('DB_SERVER')
 port = os.environ.get('DB_PORT')
 database = os.environ.get('DB_NAME')
 db_user = os.environ.get('DB_USER')
-with open(os.environ.get('DB_PASSWORD_PATH'),'r') as f:
-    db_password = f.read()
+with open(os.environ.get('DB_PASSWORD_PATH'),'r') as db_password_file:
+    db_password = db_password_file.read()
 api_username = os.environ.get('API_USER')
-with open(os.environ.get('API_PASSWORD_PATH'),'r') as f:
-    api_password = f.read()
+with open(os.environ.get('API_PASSWORD_PATH'),'r') as api_password_file:
+    api_password = api_password_file.read()
 
 try:
     wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
