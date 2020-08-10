@@ -45,10 +45,13 @@ type PeeringInstance struct {
 }
 
 //Used to create an instance of a client-server peering in local memory.
-func New(api_server, api_username, api_password, client_name, server_name string) PeeringInstance {
-	keypair := keypair.New(server_name)
+func New(api_server, api_username, api_password, client_name, server_name string) (PeeringInstance, error) {
+	keypair, keypair_error := keypair.New(server_name)
+	if keypair_error != nil {
+		return PeeringInstance{}, keypair_error
+	}
 	peering_instance := PeeringInstance{api_server, api_username, api_password, client_name, server_name, keypair.Public_key, keypair.Private_key}
-	return peering_instance
+	return peering_instance, nil
 }
 
 //Creates an client-server peering instance with the wireguard_api.

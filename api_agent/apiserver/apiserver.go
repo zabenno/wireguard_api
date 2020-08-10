@@ -57,11 +57,14 @@ type NewServerRequest struct {
 }
 
 //Creates a new server instance in local memory.
-func New(config configparser.Config) Server {
-	keypair := keypair.New(config.Server.Name)
+func New(config configparser.Config) (Server, error) {
+	keypair, keypair_error := keypair.New(config.Server.Name)
+	if keypair_error != nil {
+		return Server{}, keypair_error
+	}
 	servers_subnet := Subnet{config.Server.Subnet.NetworkAddress, config.Server.Subnet.NetworkMask, config.Server.Subnet.NumReservedIps, config.Server.Subnet.AllowedIps}
 	server := Server{config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password, config.Server.Name, keypair.Public_key, keypair.Private_key, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
-	return server
+	return server, nil
 }
 
 //Submits a peering request to the wireguard_api server.

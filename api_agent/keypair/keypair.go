@@ -3,6 +3,7 @@ package keypair
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,24 +14,39 @@ type Keypair struct {
 	Private_key string
 }
 
-func New(keypair_name string) Keypair {
-	keypair := Keypair{}
+func New(keypair_name string) (Keypair, error) {
 	if check_for_keypair(keypair_name) {
-		keypair.Private_key = read_file(fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name))
-		keypair.Public_key = read_file(fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name))
+		private_key, private_key_error := read_file(fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name))
+		public_key, public_key_error := read_file(fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name))
+
+		if public_key_error != nil {
+			return Keypair{}, private_key_error
+		} else if public_key_error != nil {
+			return Keypair{}, public_key_error
+		} else {
+			keypair := Keypair{}
+			keypair.Private_key = private_key
+			keypair.Public_key = public_key
+			return keypair, nil
+		}
 	} else {
-		keypair = keypair.create_key_pair(keypair_name)
+		keypair := Keypair{}
+		keypair, keypair_error := keypair.create_key_pair(keypair_name)
+		if keypair_error != nil {
+			return Keypair{}, keypair_error
+		}
+		return keypair, nil
 	}
-	return keypair
 }
 
 //Reads file and returns string
-func read_file(file_path string) string {
-	key, err := ioutil.ReadFile(file_path)
-	if err != nil {
-		panic(err)
+func read_file(file_path string) (string, error) {
+	key, read_error := ioutil.ReadFile(file_path)
+	if read_error != nil {
+		log.Printf("Was unable to read file at: %s. Failed with error: %s", file_path, read_error)
+		return "", read_error
 	}
-	return string(key)
+	return string(key), nil
 }
 
 //Checks if both keys in a keypair exist.
@@ -53,39 +69,53 @@ func check_file_exists(keypair_name string) bool {
 }
 
 //Creates the key pair for a peering instance.
-func (keypair Keypair) create_key_pair(keypair_name string) Keypair {
-	wireguard_path, err := exec.LookPath("wg")
+func (keypair Keypair) create_key_pair(keypair_name string) (Keypair, error) {
+	wireguard_path, exec_err := exec.LookPath("wg")
+	if exec_err != nil {
+		log.Fatal("wg command not found.")
+		return Keypair{}, exec_err
+	}
+
 	private_key, priv_err := exec.Command(wireguard_path, "genkey").Output()
-	if err != nil {
-		panic(priv_err)
+	if priv_err != nil {
+		log.Fatalf("Failed to generate private key with error: %s", priv_err)
+		return Keypair{}, priv_err
 	}
 
 	keypair.Private_key = strings.TrimSpace(string(private_key))
 
 	public_key, pub_err := exec.Command("bash", "-c", fmt.Sprintf("echo %s | wg pubkey", keypair.Private_key)).Output()
-	if err != nil {
-		panic(pub_err)
+	if pub_err != nil {
+		log.Fatalf("Failed to generate public key with error: %s", pub_err)
+		return Keypair{}, pub_err
 	}
 
 	keypair.Public_key = strings.TrimSpace(string(public_key))
 
-	keypair.save_key_pair(keypair_name)
-	return keypair
+	save_error := keypair.save_key_pair(keypair_name)
+	if save_error != nil {
+		return Keypair{}, save_error
+	}
+	return keypair, nil
 }
 
 //writes keys to files.
-func (keypair Keypair) save_key_pair(keypair_name string) {
+func (keypair Keypair) save_key_pair(keypair_name string) error {
 	file_path := fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name)
 
 	priv_err := ioutil.WriteFile(file_path, []byte(keypair.Private_key), 0600)
 	if priv_err != nil {
-		panic(priv_err)
+		log.Printf("Writing private key to file failed with error: %s", priv_err)
+		return priv_err
 	}
 
 	filep_path := fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name)
 
 	pub_err := ioutil.WriteFile(filep_path, []byte(keypair.Public_key), 0600)
 	if pub_err != nil {
-		panic(pub_err)
+		log.Printf("Writing public key to file failed with error: %s", pub_err)
+		return pub_err
 	}
+
+	return nil
 }
