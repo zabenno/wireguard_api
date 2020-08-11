@@ -61,13 +61,19 @@ func (peering PeeringInstance) Create_peer() error {
 }
 
 //Creates a wireguard configuration file on the local file system for the client-server instance.
-func (peering PeeringInstance) Create_config_file() {
-	peering_details, err := peering.get_peering_details()
-	if err == nil {
+func (peering PeeringInstance) Create_config_file() error {
+	peering_details, details_error := peering.get_peering_details()
+	if details_error == nil {
 		config_file_contents := peering.generate_conf(peering_details)
-		peering.write_config_to_file(config_file_contents)
+		write_error := peering.write_config_to_file(config_file_contents)
+		if write_error != nil {
+			return write_error
+		} else {
+			return nil
+		}
+	} else {
+		return details_error
 	}
-
 }
 
 //Checks for an existing configuration file for the client-server peering instance.
@@ -97,18 +103,21 @@ func (peering PeeringInstance) generate_peering_request() string {
 //Submits a peering request to the wireguard_api server.
 func (peering PeeringInstance) submit_peering_request(request_str string) error {
 	url := peering.api_server + "/api/v1/client/add/"
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte(request_str)))
-	if err != nil {
-		log.Print(err)
+	req, http_error := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte(request_str)))
+	if http_error != nil {
+		log.Print("Failed to create http request.")
+		return http_error
 	}
 	req.Header.Set("Content-Type", "application/json;")
 	req.SetBasicAuth(peering.api_username, peering.api_password)
 
 	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf(fmt.Sprintf("Unable to send request to Wireguard api server at %s.", url), err)
+	resp, client_error := client.Do(req)
+	if client_error != nil {
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), client_error)
+		return client_error
 	}
+
 	if resp.StatusCode == 500 {
 		log.Print(fmt.Sprintf("API server was not able to broker a connection to server %s.", peering.server_name))
 		return errors.New("ApiServerError.")
@@ -138,17 +147,19 @@ func (peering PeeringInstance) generate_conf(peering_details Peering) string {
 func (peering PeeringInstance) get_peering_details() (Peering, error) {
 	url := peering.api_server + "/api/v1/client/config/"
 	var body = []byte(fmt.Sprintf("{\"client_name\": \"%s\", \"server_name\":\"%s\"}", peering.client_name, peering.server_name))
-	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
-	if err != nil {
-		log.Print(err)
+	req, http_error := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
+	if http_error != nil {
+		log.Print("Failed to create http request.")
+		return Peering{}, http_error
 	}
 
 	client := &http.Client{}
 
 	req.Header.Set("Content-Type", "application/json;")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf(fmt.Sprintf("Unable to request peering details from Wireguard api server at %s.", url), err)
+	resp, client_error := client.Do(req)
+	if client_error != nil {
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), client_error)
+		return Peering{}, client_error
 	}
 
 	if resp.StatusCode == 500 {
@@ -162,27 +173,29 @@ func (peering PeeringInstance) get_peering_details() (Peering, error) {
 		return Peering{}, errors.New("Unknown")
 	}
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Print(err)
+	bodyBytes, read_error := ioutil.ReadAll(resp.Body)
+	if read_error != nil {
+		log.Print(read_error)
+		return Peering{}, read_error
 	}
-	bodyStr := string(bodyBytes)
 
-	bytes := []byte(bodyStr)
 	var jso Peering
-	peering_err := json.Unmarshal(bytes, &jso)
-	if peering_err != nil {
-		log.Print(peering_err)
+	parsing_error := json.Unmarshal(bodyBytes, &jso)
+	if parsing_error != nil {
+		log.Print(parsing_error)
+		return Peering{}, parsing_error
 	}
 	return jso, nil
 }
 
 //Writes a configuration file to disk for the client-server peering instance.
-func (peering PeeringInstance) write_config_to_file(config string) {
+func (peering PeeringInstance) write_config_to_file(config string) error {
 	file_path := fmt.Sprintf("/etc/wireguard/%s.conf", peering.server_name)
 
-	err := ioutil.WriteFile(file_path, []byte(config), 0600)
-	if err != nil {
-		log.Print(err)
+	write_error := ioutil.WriteFile(file_path, []byte(config), 0600)
+	if write_error != nil {
+		log.Print("Failed to write contents to file.")
+		return write_error
 	}
+	return nil
 }

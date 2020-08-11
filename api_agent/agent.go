@@ -51,7 +51,10 @@ func configure_as_client(config configparser.Config) {
 		if !peering_instance.Check_peering_existance() {
 			err := peering_instance.Create_peer()
 			if err == nil {
-				peering_instance.Create_config_file()
+				config_error := peering_instance.Create_config_file()
+				if config_error != nil {
+					log.Print("Couldn't create config file a peer.")
+				}
 			}
 		}
 	}
