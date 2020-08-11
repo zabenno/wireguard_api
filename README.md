@@ -1,7 +1,5 @@
 # wireguard_api
-A REST API server to broker basic connections between clients and servers.
-
-This documentation is in real need of a refresh, will look at doing this in the near future.
+This repo contains the code for a Python3 based web API service that allows for the brokering of connections between wireguard servers and their clients. It also includes a Golang based agent that negotiates with the broker the details of a hosts wireguard connection.
 
 ## Overview
 The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers.
@@ -9,9 +7,7 @@ Servers are fully managed via the agent with their interface created and regular
 Currently for clients, the agent only generates the configuration files required to create/configure wireguard interfaces. The creation of these interfaces is not handled by the agent, for this, see the wireguard command `wg-quick`. 
 
 Warnings: 
-* Code really needs a clean up. Some refactoring, authentication, and improved error handling and logging.
-* User data passed to SQL queries is sanitised, however few checks are performed to ensure input data makes contextual sense.
-* Due to the way the `wg syncconf` parses config, an invalid client public key will prevent the server from refreshing it's client list. This will fail with a misleading error suggesting the problem lies within the first lines of the generated file.
+* Code really needs some refactoring.
 * TLS is not handled by this app so a proxy is a must.
 
 Note:
@@ -22,7 +18,7 @@ Note:
 Updates to a WireGuard servers client list will be done via a pull from the server. This is because the intention of this API is for it to be used in conjuction with the wg-tools package, specifically the `wg syncconf` command, to avoid disrupting existing client connections when adding a new client. As the documentation for this command says it is "much less efficient" I have assumed it would be best to do this on a time interval basis, e.g. every 30 seconds, to avoid refreshing the client list for every new client addition/deletion.
 
 ### Clients
-A client should be thought of as a single entity, consisting of one or multiple peerings.
+A client should be thought of as a single hostname, that has one or multiple peerings.
 
 Client assumptions:
 * A client can be peered to multiple servers but can only have one concurrent peering to any single server.
@@ -34,57 +30,14 @@ Client assumptions:
 Currently the project requires a specified shared username/password for all POST requests and assumes it is behind a TLS proxy.
 
 ## Test Setup
-To run as is you'll need to create a postgres db with the following command.
-```bash
-docker run -it -e POSTGRES_PASSWORD=changeme123 -p 5432:5432 postgres:12.3
-```
-To load in some test data, run `python example.py` with the correct parameters.
+API Brokering Service:
+* Create your database e.g. `docker run -it -e POSTGRES_PASSWORD=changeme123 -p 5432:5432 postgres:12.3`
+* Build a local docker image of the web api: `docker build -t test .`
+* Create the missing files listed within docker-compose.yml. See https://gist.github.com/fntlnz/cf14feb5a46b2eda428e000157447309 for a guide on making ssl certs.
+* Create a docker swarm `docker swarm init`
+* Deploy docker services using the docker-compose.yml file `docker stack deploy test -c docker-compose.yml`
 
-To demo the agents you must have golang installed you can then run the agents with `go run /path/to/agent.go`
-
-To run the app you will need to create the missing files listed within docker-compose.yml.
-
-Follow this guide to create your ssl certs: https://gist.github.com/fntlnz/cf14feb5a46b2eda428e000157447309
-
-This compose file requires a swarm to function. Run `docker swarm init` before running `docker stack deploy test -c docker-compose.yml`.
-
-You will also need to build the docker container locally with `docker build -t test .`
-
-If you wish to run the app directly on your host run the following commands from wiithin the project directory.
-```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install libpq-dev python3-venv -y 
-./lab_env/bin/pip install pylint
-./lab_env/bin/pip install psycopg2
-```
-
-PS: Sorry if some instructions are missing.
-
-## Agent Configuration
-The agent can be configured as either a server or a client with the following parameters.
-```yaml
-name: ""
-type: "client | server"
-api_server:
-    address: "https://api_server_location"
-    username: "User for auth"
-    password: "Password for auth"
-server:         #Required for server.
-    name: ""
-    private_key: ""
-    public_key: ""
-    endpoint_address: ""
-    endpoint_port: 5128
-    subnet:
-        network_address: ""
-        network_mask: ""
-        num_reserved_ips: 20
-        allowed_ips: ""
-peering_list:   #Required for client.
-    server_name: ""
-    public_key: ""
-    private_key: ""
-```
+For details on building/running the agent, check the agents readme.
 
 ## API Calls
 
@@ -205,7 +158,7 @@ This call is to add a server to the database.
 }
 ```
 #### Responses
-HTTP: 201, 500
+HTTP: 201, 400, 500
 ### /api/v1/client/add/
 This call is to add a client linked to an existing server the database.
 Note: Recalling will delete the server-client peer and create a new one.
@@ -218,7 +171,7 @@ Note: Recalling will delete the server-client peer and create a new one.
 }
 ```
 #### Responses
-HTTP: 201, 500
+HTTP: 201, 400, 500
 ### /api/v1/client/delete/
 This call is to delete all instances of a single client from any servers.
 Note: This also frees the IP leases from the server.
