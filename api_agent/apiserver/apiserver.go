@@ -299,9 +299,10 @@ func (server Server) get_peers() (Clients, error) {
 
 	req.SetBasicAuth(server.api_username, server.api_password)
 	req.Header.Set("Content-Type", "application/json;")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), err)
+	resp, client_error := client.Do(req)
+	if client_error != nil {
+		log.Printf(fmt.Sprintf("Unable to connect to Wireguard api server at %s.", url), client_error)
+		return Clients{}, client_error
 	}
 
 	if resp.StatusCode == 500 {
@@ -321,6 +322,7 @@ func (server Server) get_peers() (Clients, error) {
 	bodyBytes, read_error := ioutil.ReadAll(resp.Body)
 	if read_error != nil {
 		log.Print(read_error)
+		return Clients{}, read_error
 	}
 	bodyStr := string(bodyBytes)
 
@@ -329,6 +331,7 @@ func (server Server) get_peers() (Clients, error) {
 	parsing_err := json.Unmarshal(bytes, &jso)
 	if parsing_err != nil {
 		log.Print(parsing_err)
+		return Clients{}, parsing_err
 	}
 
 	return jso, nil
