@@ -66,7 +66,11 @@ func configure_as_server(config configparser.Config) {
 		log.Fatal("Could not create server. Aborting.")
 	}
 	//Register server if it doesn't exist.
-	if !server.Server_is_registered() {
+	registered, registered_error := server.Server_is_registered()
+	if registered_error != nil {
+		log.Fatal("Could not validate server registration status.")
+	}
+	if !registered {
 		err := server.Register_server()
 		if err != nil {
 			log.Fatal("Could not register with API server. Aborting.")
@@ -74,9 +78,18 @@ func configure_as_server(config configparser.Config) {
 	}
 
 	//Initial run to bring interface up.
-	pulled_config := server.Get_wgquick_config()
-	server.Update_config_file(pulled_config)
-	server.Create_interface()
+	pulled_config, pulled_config_error := server.Get_wgquick_config()
+	if pulled_config_error != nil {
+		log.Fatal("Could not pull configuration.")
+	}
+	update_error := server.Update_config_file(pulled_config)
+	if update_error != nil {
+		log.Fatal("Unable to update configuration file")
+	}
+	interface_error := server.Create_interface()
+	if interface_error != nil {
+		log.Print("Unable to Create interface.")
+	}
 
 	//Periodically check for new clients and update configuration if client list changes.
 	for true {
@@ -84,8 +97,12 @@ func configure_as_server(config configparser.Config) {
 		pulled_config, err := server.Get_config_contents()
 		if pulled_config != current_config && err == nil {
 			server.Update_config_file(pulled_config)
-			server.Sync_wireguard_conf()
-			current_config = pulled_config
+			sync_error := server.Sync_wireguard_conf()
+			if sync_error != nil {
+				log.Print("Unsuccesfull attempt to update configuration.")
+			} else {
+				current_config = pulled_config
+			}
 		} else if err != nil {
 			log.Println("An error occured preventing a refresh of the configuration.")
 		} else {
