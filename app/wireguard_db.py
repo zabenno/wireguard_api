@@ -168,9 +168,23 @@ class Wireguard_database():
         sql_query = "INSERT INTO servers (serverID, public_key, endpoint_address, endpoint_port) VALUES ( %s, %s, %s, %s);"
         sql_data = (server_name, public_key, endpoint_address, endpoint_port)
 
+        if not self.validate_ip(network_address):
+            logging.error(f"Could not add server {server_name}: {network_address} not a valid IP Address.")
+            return 400
+        if not self.validate_network_mask(network_mask):
+            logging.error(f"Could not add server {server_name}: {network_mask} not a valid network mask.")
+            return 400
         if not self.validate_wg_key(public_key):
             logging.error(f"Could not add server {server_name}: Public key value \"{public_key}\" invalid.")
             return 400
+        if not self.validate_ip(endpoint_address):
+            logging.error(f"Could not add server {server_name}: {endpoint_address} not a valid IP Address.")
+            return 400
+        if not self.validate_port(endpoint_port):
+            logging.error(f"Could not add server {server_name}: {endpoint_port} not a valid port number.")
+            return 400
+        
+
         try:
             self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
@@ -196,8 +210,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete server {server_name}: %s", error)
+            return 500
         else:
             logging.debug(f"Succesfully deleted server {server_name}.")
+            return 200
     
     def create_subnet(self, server_name, network_address, network_mask, n_reserved_ips, allowed_ips):
         """
@@ -237,7 +253,9 @@ class Wireguard_database():
             self.delete_client_peering(client_name, server_name)
             self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
-            self.assign_lease(client_name, server_name)
+            if not self.assign_lease(client_name, server_name):
+                self.delete_client_peering(client_name, server_name)
+                return 500
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not create peering {client_name}-{server_name}: %s", error)
@@ -261,10 +279,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete client {client_name}.: %s", error)
-            return False
+            return 500
         else:
             logging.debug(f"Succesfully deleted client {client_name}.")
-            return True
+            return 200
 
     def delete_client_peering(self, client_name, server_name):
         """
@@ -281,10 +299,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not delete client-server peering of {client_name}-{server_name}.: %s", error)
-            return False
+            return 500
         else:
             logging.debug(f"Succesfully deleted client-server peer {client_name}-{server_name}.")
-            return True
+            return 200
 
     def assign_lease(self, client_name, server_name):
         """
@@ -304,8 +322,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not assign lease to client {client_name}: %s", error)
+            return False
         else:
             logging.debug(f"Successfully added client: {client_name}.")
+            return True
 
     def get_next_ip(self, server_name):
         """
@@ -491,6 +511,25 @@ class Wireguard_database():
         pattern = re.compile("^[0-9a-zA-Z\+/]{43}=")
         return pattern.match(key) != None
     
+    def validate_ip(self, ip):
+        try:
+            ipaddress.IPv4Address(ip)
+            return True
+        except (Exception, ValueError):
+            return False
+
+    def validate_network_mask(self, mask):
+        try:
+            return mask > 0 and mask <=32
+        except Exception:
+            return False
+
+    def validate_port(self, port):
+        try:
+            return port > 1 and port <=65535
+        except Exception:
+            return False
+
     def get_server_wireguard_ip(self, server_name):
         subnetID = self.get_subnet_id(server_name)
         response = {}

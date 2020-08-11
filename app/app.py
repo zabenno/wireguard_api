@@ -9,11 +9,11 @@ server = os.environ.get('DB_SERVER')
 port = os.environ.get('DB_PORT')
 database = os.environ.get('DB_NAME')
 db_user = os.environ.get('DB_USER')
-with open(os.environ.get('DB_PASSWORD_PATH'),'r') as f:
-    db_password = f.read()
+with open(os.environ.get('DB_PASSWORD_PATH'),'r') as db_password_file:
+    db_password = db_password_file.read()
 api_username = os.environ.get('API_USER')
-with open(os.environ.get('API_PASSWORD_PATH'),'r') as f:
-    api_password = f.read()
+with open(os.environ.get('API_PASSWORD_PATH'),'r') as api_password_file:
+    api_password = api_password_file.read()
 
 try:
     wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
@@ -99,31 +99,21 @@ def create_client():
 @auth_required
 def delete_client():
     content = request.json
-    if wireguard_state.delete_client(content['client_name']):
-        return "", 200
-    else:
-        return "", 500
+    return "", wireguard_state.delete_client(content['client_name'])
 
 #Removes a server and any row in the database referencing it.
 @app.route('/api/v1/server/delete/', methods=['POST'])
 @auth_required
 def delete_server():
     content = request.json
-    try:
-        wireguard_state.delete_server(content['server_name'])
-        return "", 200
-    except (Exception):
-        return "", 500
+    return "", wireguard_state.delete_server(content['server_name'])
 
 #Removes the peering instance of a specified client from a specified server.
 @app.route('/api/v1/server/remove_peer/', methods=['POST'])
 @auth_required
 def remove_peer():
     content = request.json
-    if wireguard_state.delete_client_peering(content['client_name'], content['server_name']):
-        return "", 200
-    else:
-        return "", 500
+    return "", wireguard_state.delete_client_peering(content['client_name'], content['server_name'])
 
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=5000)
