@@ -14,6 +14,7 @@ import (
 type Server struct {
 	cli             wgcli.Wg_Cli
 	api             apiv1.API_Interface
+	Refresh_time    int
 	server_name     string
 	public_key      string
 	private_key     string
@@ -39,9 +40,15 @@ func New(config configparser.Config) (Server, error) {
 	if cli_error != nil {
 		return Server{}, cli_error
 	}
+
+	refresh_time := 60
+	if config.Server.RefreshTime != 0 {
+		refresh_time = config.Server.RefreshTime
+	}
+
 	api := apiv1.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password)
 	servers_subnet := Subnet{config.Server.Subnet.NetworkAddress, config.Server.Subnet.NetworkMask, config.Server.Subnet.NumReservedIps, config.Server.Subnet.AllowedIps}
-	server := Server{cli, api, config.Server.Name, keypair.Public_key, keypair.Private_key, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
+	server := Server{cli, api, refresh_time, config.Server.Name, keypair.Public_key, keypair.Private_key, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
 	return server, nil
 }
 

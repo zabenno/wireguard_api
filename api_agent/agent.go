@@ -117,7 +117,7 @@ func configure_as_server(config configparser.Config) {
 		} else {
 			log.Println("No change to configuration detected.")
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(time.Duration(server.Refresh_time) * time.Second)
 	}
 }
 

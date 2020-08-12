@@ -12,6 +12,7 @@ type Server struct {
 	Subnet          Subnet `yaml:"subnet"`
 	EndpointAddress string `yaml:"endpoint_address"`
 	EndpointPort    int    `yaml:"endpoint_port"`
+	RefreshTime     int    `yaml:"refresh_frequency"`
 }
 
 type Subnet struct {
