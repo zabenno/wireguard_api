@@ -85,6 +85,17 @@ def get_server_wireguard_ip():
     else:
         return "", 404
 
+#Check if a wireguard server exists.
+@app.route('/api/v1/server/exists/', methods=['GET'])
+@auth_required
+def get_server_existance():
+    content = request.json
+    exists = wireguard_state.check_server_exists(content['server_name'])
+    if exists:
+        return "", 200
+    else:
+        return "", 404
+
 #Create a new client-server peering.
 @app.route('/api/v1/client/add/', methods=['POST'])
 @auth_required

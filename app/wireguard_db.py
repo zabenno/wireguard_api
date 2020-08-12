@@ -188,7 +188,9 @@ class Wireguard_database():
         try:
             self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
-            self.create_subnet(server_name, network_address, network_mask, n_reserved_ips, allowed_ips)
+            if not self.create_subnet(server_name, network_address, network_mask, n_reserved_ips, allowed_ips):
+                self.delete_server(server_name)
+                return 500
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not add server {server_name}: %s", error)
@@ -232,8 +234,10 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             self.db_connection.rollback()
             logging.error(f"Could not add subnet for {server_name}: %s", error)
+            return False
         else:
             logging.debug(f"Successfully added subnet: {network_address}/{network_mask}.")
+            return True
 
     def create_client(self, client_name, server_name, public_key):
         """
@@ -503,6 +507,16 @@ class Wireguard_database():
         for client in clients:
             response["peers"] += [{"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}]
         return response
+
+    def check_server_exists(self, server_name):
+        sql_query = "SELECT COUNT(serverID) FROM servers WHERE serverID = %s;"
+        sql_data = (server_name,)
+        try:
+            self.cursor.execute(sql_query, sql_data)
+            instances_of_server = self.cursor.fetchone()[0]
+        except (Exception, psycopg2.DatabaseError) as error:
+            logging.error(f"Could not pull client list from database: %s", error)
+        return instances_of_server > 0
 
     def validate_wg_key(self, key):
         """
