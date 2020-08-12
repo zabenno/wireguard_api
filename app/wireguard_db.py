@@ -504,6 +504,16 @@ class Wireguard_database():
             response["peers"] += [{"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}]
         return response
 
+    def check_server_exists(self, server_name):
+        sql_query = "SELECT COUNT(serverID) FROM servers WHERE serverID = %s;"
+        sql_data = (server_name,)
+        try:
+            self.cursor.execute(sql_query, sql_data)
+            instances_of_server = self.cursor.fetchone()[0]
+        except (Exception, psycopg2.DatabaseError) as error:
+            logging.error(f"Could not pull client list from database: %s", error)
+        return instances_of_server > 0
+
     def validate_wg_key(self, key):
         """
         Returns whether a given string represents a valid wireguard key.

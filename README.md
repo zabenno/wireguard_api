@@ -206,3 +206,13 @@ Note: In the case this is the only server a client is attached to, it will also 
 ```
 #### Responses
 HTTP: 200, 500
+### /api/v1/server/exists/
+This call is to check if a server exists.
+#### Call Content
+```json
+{
+    "server_name":"name"
+}
+```
+#### Responses
+HTTP: 200, 404
