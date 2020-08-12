@@ -37,6 +37,7 @@ server:
     name: ""
     endpoint_address: ""
     endpoint_port: 5128
+    refresh_frequency: 20
     subnet:
         network_address: ""
         network_mask: ""

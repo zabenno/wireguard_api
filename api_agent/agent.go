@@ -11,9 +11,15 @@ import (
 
 //Checks whether a host is configured to be a client or server then hands over to other methods.
 func main() {
+	configuration_path := ""
+	if len(os.Args) > 1 {
+		configuration_path = os.Args[1]
+	} else {
+		configuration_path = "/etc/wireguard_api/wireguard_api.conf"
+	}
 	log.SetFlags(log.Ldate | log.Ltime)
 	ensure_conf_dir()
-	var config = configparser.New("./test.yaml")
+	var config = configparser.New(configuration_path)
 	if config.Type == "client" {
 		configure_as_client(config)
 	} else if config.Type == "server" {
@@ -111,7 +117,7 @@ func configure_as_server(config configparser.Config) {
 		} else {
 			log.Println("No change to configuration detected.")
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(time.Duration(server.Refresh_time) * time.Second)
 	}
 }
 
