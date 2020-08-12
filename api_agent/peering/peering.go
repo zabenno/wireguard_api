@@ -3,34 +3,11 @@ package peering
 import (
 	"agent/apiv1"
 	"agent/keypair"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 )
-
-type Server struct {
-	Endpoint_address string `json:"endpoint_address"`
-	Endpoint_port    int    `json:"endpoint_port"`
-	Public_key       string `json:"public_key"`
-}
-
-type Subnet struct {
-	Allowed_ips string `json:"allowed_ips"`
-	Lease       string `json:"lease"`
-}
-
-type Peering struct {
-	Server Server `json:"server"`
-	Subnet Subnet `json:"subnet"`
-}
-
-type Client struct {
-	Client_name string `json:"client_name"`
-	Server_name string `json:"server_name"`
-	Public_key  string `json:"public_key"`
-}
 
 type PeeringInstance struct {
 	api         apiv1.API_Interface
@@ -53,8 +30,7 @@ func New(api_server, api_username, api_password, client_name, server_name string
 
 //Creates an client-server peering instance with the wireguard_api.
 func (peering PeeringInstance) Create_peer() error {
-	json_peering_request := peering.generate_peering_request()
-	return peering.api.Add_client(json_peering_request)
+	return peering.api.Add_client(peering.server_name, peering.client_name, peering.public_key)
 }
 
 //Creates a wireguard configuration file on the local file system for the client-server instance.
@@ -81,20 +57,6 @@ func (peering PeeringInstance) Check_peering_existance() bool {
 		return false
 	}
 	return true
-}
-
-//Creates the content that will be placed in the body of the REST API call to the wireguard_api server.
-func (peering PeeringInstance) generate_peering_request() string {
-	var client_request = Client{
-		Client_name: peering.client_name,
-		Server_name: peering.server_name,
-		Public_key:  peering.public_key,
-	}
-	client_request_JSON, err := json.MarshalIndent(client_request, "", "	")
-	if err != nil {
-		log.Print(err)
-	}
-	return string(client_request_JSON)
 }
 
 //Creates the contents of a wireguard configuration file for the client-server peering instance.
