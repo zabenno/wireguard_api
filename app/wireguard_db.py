@@ -493,6 +493,8 @@ class Wireguard_database():
         """
         Returns all client details required for a server to configure itself to accept connections from those clients.
         """
+        if not self.check_server_exists(server_name):
+            return None
         subnetID = self.get_subnet_id(server_name)
         response = {"peers": []}
 
@@ -504,11 +506,13 @@ class Wireguard_database():
             clients = self.cursor.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client list from database: %s", error)
+            return {}
         for client in clients:
             response["peers"] += [{"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}]
         return response
 
     def check_server_exists(self, server_name):
+        """ Checks if a server exists """
         sql_query = "SELECT COUNT(serverID) FROM servers WHERE serverID = %s;"
         sql_data = (server_name,)
         try:
@@ -526,6 +530,7 @@ class Wireguard_database():
         return pattern.match(key) != None
     
     def validate_ip(self, ip):
+        """ Checks if ip is a valid IPv4 Address. """
         try:
             ipaddress.IPv4Address(ip)
             return True
@@ -533,18 +538,21 @@ class Wireguard_database():
             return False
 
     def validate_network_mask(self, mask):
+        """ Checks if network mask is a valid IPv4 mask. """
         try:
             return mask > 0 and mask <=32
         except Exception:
             return False
 
     def validate_port(self, port):
+        """ Checks if port number is within the valid range. """
         try:
             return port > 1 and port <=65535
         except Exception:
             return False
 
     def get_server_wireguard_ip(self, server_name):
+        """ Returns the IP address assigned to a server for use within its wireguard session. """
         subnetID = self.get_subnet_id(server_name)
         response = {}
 
