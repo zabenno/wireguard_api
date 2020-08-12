@@ -34,13 +34,13 @@ type Server struct {
 	public_key      string
 	private_key     string
 	endpointaddress string
-	endpointport    string
+	endpointport    int
 	subnet          Subnet
 }
 
 type Subnet struct {
 	NetworkAddress string
-	NetworkMask    string
+	NetworkMask    int
 	NumReservedIps int
 	AllowedIps     string
 }
@@ -48,10 +48,10 @@ type Subnet struct {
 type NewServerRequest struct {
 	ServerName      string `json:"server_name"`
 	NetworkAddress  string `json:"network_address"`
-	NetworkMask     string `json:"network_mask"`
+	NetworkMask     int    `json:"network_mask"`
 	PublicKey       string `json:"public_key"`
 	EndpointAddress string `json:"endpoint_address"`
-	EndpointPort    string `json:"endpoint_port"`
+	EndpointPort    int    `json:"endpoint_port"`
 	NReservedIps    int    `json:"n_reserved_ips"`
 	AllowedIps      string `json:"allowed_ips"`
 }
@@ -234,7 +234,7 @@ func (server Server) Get_config_contents() (string, error) {
 func (server Server) get_interface_config() string {
 	response := "[Interface]\n"
 	response += fmt.Sprintf("PrivateKey = %s\n", server.private_key)
-	response += fmt.Sprintf("ListenPort = %s\n", server.endpointport)
+	response += fmt.Sprintf("ListenPort = %d\n", server.endpointport)
 	return response
 }
 
@@ -245,7 +245,7 @@ func (server Server) Get_wgquick_config() (string, error) {
 	if wg_ip_error != nil {
 		return "", wg_ip_error
 	} else {
-		response += fmt.Sprintf("Address = %s/%s\n", wg_ip, server.subnet.NetworkMask)
+		response += fmt.Sprintf("Address = %s/%d\n", wg_ip, server.subnet.NetworkMask)
 		return response, nil
 	}
 }

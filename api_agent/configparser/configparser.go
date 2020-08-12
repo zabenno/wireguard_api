@@ -11,12 +11,12 @@ type Server struct {
 	Name            string `yaml:"name"`
 	Subnet          Subnet `yaml:"subnet"`
 	EndpointAddress string `yaml:"endpoint_address"`
-	EndpointPort    string `yaml:"endpoint_port"`
+	EndpointPort    int    `yaml:"endpoint_port"`
 }
 
 type Subnet struct {
 	NetworkAddress string `yaml:"network_address"`
-	NetworkMask    string `yaml:"network_mask"`
+	NetworkMask    int    `yaml:"network_mask"`
 	NumReservedIps int    `yaml:"num_reserved_ips"`
 	AllowedIps     string `yaml:"allowed_ips"`
 }
