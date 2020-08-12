@@ -128,7 +128,7 @@ func (api_instance API_Interface) Get_client_details(server_name, client_name st
 func (api_instance API_Interface) Add_server(request_str string) error {
 	url := api_instance.API_Server_Address + "/api/v1/server/add/"
 	_, status_code, request_error := api_instance.submit_api_request(http.MethodPost, url, request_str)
-	if request_error != nil || status_code != 200 {
+	if request_error != nil {
 		return request_error
 	}
 	if status_code == 500 {
