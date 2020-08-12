@@ -4,14 +4,15 @@ import (
 	"agent/apiv1"
 	"agent/configparser"
 	"agent/keypair"
+	"agent/wgcli"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os/exec"
 )
 
 type Server struct {
+	cli             wgcli.Wg_Cli
 	api             apiv1.API_Interface
 	server_name     string
 	public_key      string
@@ -34,9 +35,13 @@ func New(config configparser.Config) (Server, error) {
 	if keypair_error != nil {
 		return Server{}, keypair_error
 	}
+	cli, cli_error := wgcli.New()
+	if cli_error != nil {
+		return Server{}, cli_error
+	}
 	api := apiv1.New(config.ApiServer.Address, config.ApiServer.Username, config.ApiServer.Password)
 	servers_subnet := Subnet{config.Server.Subnet.NetworkAddress, config.Server.Subnet.NetworkMask, config.Server.Subnet.NumReservedIps, config.Server.Subnet.AllowedIps}
-	server := Server{api, config.Server.Name, keypair.Public_key, keypair.Private_key, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
+	server := Server{cli, api, config.Server.Name, keypair.Public_key, keypair.Private_key, config.Server.EndpointAddress, config.Server.EndpointPort, servers_subnet}
 	return server, nil
 }
 
@@ -75,38 +80,12 @@ func (server Server) Server_is_registered() (bool, error) {
 }
 
 func (server Server) Create_interface() error {
-	wireguard_quick_path, wgquick_path_error := exec.LookPath("wg-quick")
-
-	if wgquick_path_error != nil {
-		log.Fatal("Failed to find wg-quick command.")
-		return wgquick_path_error
-	} else {
-		command := exec.Command(wireguard_quick_path, "up", fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name))
-		_, interface_error := command.CombinedOutput()
-		if interface_error != nil {
-			log.Printf("Failed to bring interface up with error. Interface may already exist")
-			return interface_error
-		}
-		return nil
-	}
+	return server.cli.Create_interface(server.server_name)
 }
 
 //Refreshes the in memory configuration of the wireguard server.
 func (server Server) Sync_wireguard_conf() error {
-	wireguard_path, wg_path_error := exec.LookPath("wg")
-
-	if wg_path_error != nil {
-		log.Print("Failed to find wg command.")
-		return wg_path_error
-	} else {
-		command := exec.Command(wireguard_path, "syncconf", server.server_name, fmt.Sprintf("/etc/wireguard/%s.conf", server.server_name))
-		_, wg_exec_error := command.CombinedOutput()
-		if wg_exec_error != nil {
-			log.Print("Failed to sync wireguards in memory configuration.")
-			return wg_exec_error
-		}
-		return nil
-	}
+	return server.cli.Sync_wireguard_conf(server.server_name)
 }
 
 //Updates the on disk configuration for the wireguard server.
