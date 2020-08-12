@@ -49,13 +49,13 @@ def return_servers_list():
 @auth_required
 def return_server_conf():
     content = request.json
-    try:
-        response = wireguard_state.get_server_config(content['server_name']), 200
-    except (Exception):
-        return "", 500
-    if len(response[0]) == 0:
+    response = wireguard_state.get_server_config(content['server_name']), 200
+    if response == None:
         return "", 404
-    return response
+    elif response == {}:
+        return "", 500
+    else:
+        return response, 200
 
 #Return all non-sensitive information required to configure a specific client-server peering.
 @app.route('/api/v1/client/config/', methods=["GET"])
