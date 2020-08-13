@@ -62,9 +62,13 @@ def return_server_conf():
 def get_client_conf():
     content = request.json
     try:
-        return wireguard_state.get_client_config(content['client_name'], content['server_name']), 200
-    except (Exception):
+        response = wireguard_state.get_client_config(content['client_name'], content['server_name'])
+    except Exception:
         return "", 500
+    if response == None:
+        return "", 404
+    else:
+        return response, 200
 
 #Create a new wireguard server.
 @app.route('/api/v1/server/add/', methods=['POST'])
