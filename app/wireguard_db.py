@@ -249,6 +249,9 @@ class Wireguard_database():
         if not self.validate_wg_key(public_key):
             logging.error(f"Could not create peering {client_name}-{server_name}: Public key value \"{public_key}\" invalid.")
             return 400
+        if not self.check_server_exists(server_name):
+            logging.error(f"Could not create peering {client_name}-{server_name}: server does not exist.")
+            return 404
 
         sql_query = "INSERT INTO clients (client_name, public_key, serverID) VALUES ( %s, %s, %s);"
         sql_data = (client_name, public_key, server_name,)
@@ -258,6 +261,7 @@ class Wireguard_database():
             self.cursor.execute(sql_query, sql_data)
             self.db_connection.commit()
             if not self.assign_lease(client_name, server_name):
+                logging.error(f"Failed to get a lease for {client_name}.")
                 self.delete_client_peering(client_name, server_name)
                 return 500
         except (Exception, psycopg2.DatabaseError) as error:
@@ -314,6 +318,8 @@ class Wireguard_database():
         This method should not be called directly as it is called from within the create_client() method.
         """
         ip_address = self.get_next_ip(server_name)
+        if ip_address == None:
+            return False
         int_ip = self.ip_to_int(ip_address)
         clientID = self.get_client_id(client_name, server_name)
 
@@ -352,7 +358,10 @@ class Wireguard_database():
         
         #Set it to the first available ip if none exist.
         if len(taken_ips) == 0:
-            return subnet[n_reserved_ips + 1]
+            if subnet[n_reserved_ips + 1] != subnet[-1]:
+                return subnet[n_reserved_ips + 1]
+            else:
+                return None
 
         #Format query result to list of ints
         taken_ips_ints = []
@@ -363,8 +372,10 @@ class Wireguard_database():
         for ipaddr in subnet.hosts():
             ipaddr = ipaddress.ip_address(ipaddr)
             intaddr = int.from_bytes(ipaddr.packed, "big")
-            if not intaddr in taken_ips_ints and ipaddr > subnet[n_reserved_ips]:
+            if not intaddr in taken_ips_ints and ipaddr > subnet[n_reserved_ips] and ipaddr != subnet[-1]:
                 return ipaddr
+        
+        return None
     
     def ip_to_int(self, ip):
         """
