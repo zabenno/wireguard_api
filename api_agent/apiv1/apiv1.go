@@ -106,7 +106,7 @@ func (api_instance API_Interface) Get_client_details(server_name, client_name st
 	body_bytes, status_code, request_error := api_instance.submit_api_request(http.MethodGet, url, request_str)
 	if request_error != nil {
 		return Peering{}, request_error
-	} else if status_code == 500 {
+	} else if status_code == 404 {
 		log.Print(fmt.Sprintf("Was unable to get peering config for connection to server %s.", api_instance.API_Server_Address))
 		return Peering{}, errors.New("Failed")
 	} else if status_code == 401 {

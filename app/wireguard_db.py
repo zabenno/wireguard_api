@@ -480,6 +480,8 @@ class Wireguard_database():
         """
         Returns all non-sensitive details required for a client to configure itself for the peering with a single server.
         """
+        if not self.check_client_exists(client_name, server_name):
+            return None
         clientID = self.get_client_id(client_name, server_name)
 
         sql_server_query = "SELECT public_key, endpoint_address, endpoint_port FROM servers WHERE serverID = %s;"
@@ -530,8 +532,19 @@ class Wireguard_database():
             self.cursor.execute(sql_query, sql_data)
             instances_of_server = self.cursor.fetchone()[0]
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Could not pull client list from database: %s", error)
+            logging.error(f"Could not reach database: %s", error)
         return instances_of_server > 0
+
+    def check_client_exists(self, client_name, server_name):
+        """ Checks if a server exists """
+        sql_query = "SELECT COUNT(clientID) FROM clients WHERE client_name = %s AND serverID = %s;"
+        sql_data = (client_name, server_name)
+        try:
+            self.cursor.execute(sql_query, sql_data)
+            instances_of_client = self.cursor.fetchone()[0]
+        except (Exception, psycopg2.DatabaseError) as error:
+            logging.error(f"Could not reach database: %s", error)
+        return instances_of_client > 0
 
     def validate_wg_key(self, key):
         """
