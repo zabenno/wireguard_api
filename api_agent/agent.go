@@ -15,7 +15,7 @@ func main() {
 	if len(os.Args) > 1 {
 		configuration_path = os.Args[1]
 	} else {
-		configuration_path = "/etc/wireguard_api/wireguard_api.conf"
+		configuration_path = "/etc/wireguardbroker/wireguardbroker.conf"
 	}
 	log.SetFlags(log.Ldate | log.Ltime)
 	ensure_conf_dir()
@@ -40,8 +40,8 @@ func check_dir_exists(file_path string) bool {
 
 //Ensures configuration directory exists.
 func ensure_conf_dir() {
-	if !check_dir_exists("/etc/wireguard_api/") {
-		err := os.Mkdir("/etc/wireguard_api/", 0755)
+	if !check_dir_exists("/etc/wireguardbroker/") {
+		err := os.Mkdir("/etc/wireguardbroker/", 0755)
 		if err != nil {
 			log.Fatal("Could not create configuration directory even though it doesn't exist.")
 		}

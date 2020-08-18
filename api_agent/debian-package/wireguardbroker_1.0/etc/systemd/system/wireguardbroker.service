@@ -1,0 +1,10 @@
+[Unit]
+Description=Wireguard API Broker
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wireguardbroker
+
+[Install]
+WantedBy=multi-user.target
