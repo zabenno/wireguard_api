@@ -4,3 +4,4 @@ __pycache__
 *.txt
 *.crt
 *.key
+api_agent/test.yaml
