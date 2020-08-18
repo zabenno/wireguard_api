@@ -40,7 +40,7 @@ server:
     refresh_frequency: 20
     subnet:
         network_address: ""
-        network_mask: ""
+        network_mask: 24
         num_reserved_ips: 20
         allowed_ips: ""
 ```
