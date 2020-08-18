@@ -16,8 +16,8 @@ type Keypair struct {
 
 func New(keypair_name string) (Keypair, error) {
 	if check_for_keypair(keypair_name) {
-		private_key, private_key_error := read_file(fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name))
-		public_key, public_key_error := read_file(fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name))
+		private_key, private_key_error := read_file(fmt.Sprintf("/etc/wireguardbroker/.%s.priv", keypair_name))
+		public_key, public_key_error := read_file(fmt.Sprintf("/etc/wireguardbroker/%s.pub", keypair_name))
 
 		if public_key_error != nil {
 			return Keypair{}, private_key_error
@@ -51,8 +51,8 @@ func read_file(file_path string) (string, error) {
 
 //Checks if both keys in a keypair exist.
 func check_for_keypair(keypair_name string) bool {
-	if check_file_exists(fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name)) {
-		if check_file_exists(fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name)) {
+	if check_file_exists(fmt.Sprintf("/etc/wireguardbroker/.%s.priv", keypair_name)) {
+		if check_file_exists(fmt.Sprintf("/etc/wireguardbroker/%s.pub", keypair_name)) {
 			return true
 		}
 	}
@@ -101,7 +101,7 @@ func (keypair Keypair) create_key_pair(keypair_name string) (Keypair, error) {
 
 //writes keys to files.
 func (keypair Keypair) save_key_pair(keypair_name string) error {
-	file_path := fmt.Sprintf("/etc/wireguard_api/.%s.priv", keypair_name)
+	file_path := fmt.Sprintf("/etc/wireguardbroker/.%s.priv", keypair_name)
 
 	priv_err := ioutil.WriteFile(file_path, []byte(keypair.Private_key), 0600)
 	if priv_err != nil {
@@ -109,7 +109,7 @@ func (keypair Keypair) save_key_pair(keypair_name string) error {
 		return priv_err
 	}
 
-	filep_path := fmt.Sprintf("/etc/wireguard_api/%s.pub", keypair_name)
+	filep_path := fmt.Sprintf("/etc/wireguardbroker/%s.pub", keypair_name)
 
 	pub_err := ioutil.WriteFile(filep_path, []byte(keypair.Public_key), 0600)
 	if pub_err != nil {

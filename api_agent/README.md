@@ -18,8 +18,18 @@ apt install golang -y
 go get gopkg.in/yaml.v2
 go mod init agent
 ```
-To build: `go build agent.go`
+To build: `go build -o wireguardbroker agent.go`
+
 To run: `go run agent.go`
+
+## Package (Debian)
+To package the agent for Debian, follow the instructions to build the agent, then:
+```bash
+mkdir -p <repo_path>/api_agent/debian-package/wireguardbroker_1.0/usr/bin/
+mv <path_of_binary> <repo_path>/api_agent/debian-package/wireguardbroker_1.0/usr/bin/wireguardbroker
+cd <repo_path>/api_agent/debian-package/
+dpkg-deb --build wireguardbroker_1.0/
+```
 
 ## Server Mode
 When configured as a server the agent will take full responsibility for the handling of the negotiation with the wireguard api service as well as the creation and maintainance of the interface. It achieves this by first creating a configuration file supported by wg-quick to create the interface, then continuosly refreshing a config file supported by wg syncconf that includes the client list. Currently the agent does not support the destruction of old interfaces and this must be done manually. 
