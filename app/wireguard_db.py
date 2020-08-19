@@ -143,7 +143,7 @@ class Wireguard_database():
                 leaseID serial PRIMARY KEY,
                 subnetID serial,
                 clientID serial UNIQUE,
-                ip_address VARCHAR (15) UNIQUE,
+                ip_address VARCHAR (18) UNIQUE,
                 CONSTRAINT leases_clientID_fkey FOREIGN KEY (clientID) 
                 REFERENCES clients (clientID) ON DELETE CASCADE,
                 CONSTRAINT leases_subnetID_fkey FOREIGN KEY (subnetID) 
@@ -320,11 +320,10 @@ class Wireguard_database():
         ip_address = self.get_next_ip(server_name)
         if ip_address == None:
             return False
-        int_ip = self.ip_to_int(ip_address)
         clientID = self.get_client_id(client_name, server_name)
 
         sql_query = "INSERT INTO leases (subnetID, clientID, ip_address) VALUES ((SELECT subnetID FROM subnets WHERE serverID = %s), %s, %s );"
-        sql_data =  (server_name, clientID, int_ip,)
+        sql_data =  (server_name, clientID, ip_address,)
 
         try:
             self.cursor.execute(sql_query, sql_data)
@@ -359,34 +358,18 @@ class Wireguard_database():
         #Set it to the first available ip if none exist.
         if len(taken_ips) == 0:
             if subnet[n_reserved_ips + 1] != subnet[-1]:
-                return subnet[n_reserved_ips + 1]
+                return str(subnet[n_reserved_ips + 1])
             else:
                 return None
 
-        #Format query result to list of ints
-        taken_ips_ints = []
-        for ip in taken_ips:
-            taken_ips_ints += [int(ip[0])]
-
         #Return first IP address not in use
         for ipaddr in subnet.hosts():
+            ipaddr_str = str(ipaddr)
             ipaddr = ipaddress.ip_address(ipaddr)
-            intaddr = int.from_bytes(ipaddr.packed, "big")
-            if not intaddr in taken_ips_ints and ipaddr > subnet[n_reserved_ips] and ipaddr != subnet[-1]:
-                return ipaddr
+            if not ipaddr_str in taken_ips and ipaddr > subnet[n_reserved_ips] and ipaddr != subnet[-1]:
+                return ipaddr_str
         
         return None
-    
-    def ip_to_int(self, ip):
-        """
-        This method converts an string ipv4 address to a interger representation that __init__ of IPv4Address can understand.
-        This method was more useful when assigning leases in a differenet manner and could be removed in future.
-        """
-        if len(str(ip)) == 0:
-            raise Exception("Error: Server out of leases")
-        ipaddr = ipaddress.ip_address(ip)
-        intaddr = int.from_bytes(ipaddr.packed, "big")
-        return intaddr
 
     def list_clients(self):
         """
@@ -498,7 +481,7 @@ class Wireguard_database():
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Could not pull client details from database: %s", error)
         server_details = {"public_key": server_details[0], "endpoint_address": server_details[1], "endpoint_port": server_details[2]}
-        subnet_details = {"allowed_ips": subnet_details[0], "lease": str(ipaddress.IPv4Address(int(subnet_details[1])))}
+        subnet_details = {"allowed_ips": subnet_details[0], "lease": subnet_details[1]}
         response = {"server": server_details, "subnet": subnet_details}
         return response
 
@@ -521,7 +504,7 @@ class Wireguard_database():
             logging.error(f"Could not pull client list from database: %s", error)
             return {}
         for client in clients:
-            response["peers"] += [{"public_key": client[1], "ip_address": str(ipaddress.IPv4Address(int(client[2])))}]
+            response["peers"] += [{"public_key": client[1], "ip_address": client[2]}]
         return response
 
     def check_server_exists(self, server_name):
