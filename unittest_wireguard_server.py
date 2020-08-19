@@ -1,4 +1,4 @@
-from wireguard_db import Wireguard_database
+from app.wireguard_db import Wireguard_database
 import unittest
 
 class unittest_wireguard_server(unittest.TestCase):      

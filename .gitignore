@@ -5,3 +5,4 @@ __pycache__
 *.crt
 *.key
 api_agent/test.yaml
+!requirements.txt

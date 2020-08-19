@@ -2,7 +2,7 @@ version: "3.6"
 
 services: 
   wireguard_api:
-    image: test:latest
+    image: zabenno/wireguard_broker_server:latest
     networks: 
       frontend:
         aliases: 

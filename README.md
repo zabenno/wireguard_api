@@ -1,14 +1,12 @@
 # wireguard_api
-This repo contains the code for a Python3 based web API service that allows for the brokering of connections between wireguard servers and their clients. It also includes a Golang based agent that negotiates with the broker the details of a hosts wireguard connection.
+This repo contains the code for a Python3 based web API service that allows for the brokering of connections between wireguard servers and their clients.
+
+## Related Sources
+The latest stable docker image can be found here: https://hub.docker.com/r/zabenno/wireguard_broker_server
+The code for the agent used by servers and clients can be found at: https://github.com/zabenno/wireguard_api_agent
 
 ## Overview
 The goal of this project is to create an automated way of brokering connections between Wireguard clients and their servers.
-Servers are fully managed via the agent with their interface created and regularly updated.
-Currently for clients, the agent only generates the configuration files required to create/configure wireguard interfaces. The creation of these interfaces is not handled by the agent, for this, see the wireguard command `wg-quick`. 
-
-Warnings: 
-* Code really needs some refactoring.
-* TLS is not handled by this app so a proxy is a must.
 
 Note:
 * All testing for this project has been done on Ubuntu 20.04, within a python3.8 venv connecting to the docker image postgres:12.3.
@@ -29,7 +27,7 @@ Client assumptions:
 ### Security
 Currently the project requires a specified shared username/password for all POST requests and assumes it is behind a TLS proxy.
 
-## Test Setup
+## Local Test Setup
 API Brokering Service:
 * Create your database e.g. `docker run -it -e POSTGRES_PASSWORD=changeme123 -p 5432:5432 postgres:12.3`
 * Build a local docker image of the web api: `docker build -t test .`
