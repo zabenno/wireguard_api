@@ -67,6 +67,7 @@ func New(api_server, api_username, api_password string) API_Interface {
 	return api_instance
 }
 
+//Sends a call to the wg broker api to request a client to be added to a server.
 func (api_instance API_Interface) Add_client(server_name, client_name, public_key string) error {
 	var client_request = Wg_Client{
 		Client_name: client_name,
@@ -100,6 +101,7 @@ func (api_instance API_Interface) Add_client(server_name, client_name, public_ke
 	}
 }
 
+//Sends a request to the wg broker api for the details required for a client to configure its connection to a server.
 func (api_instance API_Interface) Get_client_details(server_name, client_name string) (Peering, error) {
 	url := api_instance.API_Server_Address + "/api/v1/client/config/"
 	request_str := fmt.Sprintf("{\"client_name\": \"%s\", \"server_name\":\"%s\"}", client_name, server_name)
@@ -125,6 +127,7 @@ func (api_instance API_Interface) Get_client_details(server_name, client_name st
 	return peering_details, nil
 }
 
+//Sends a call to the wg broker api to request a server to be registered.
 func (api_instance API_Interface) Add_server(request_str string) error {
 	url := api_instance.API_Server_Address + "/api/v1/server/add/"
 	_, status_code, request_error := api_instance.submit_api_request(http.MethodPost, url, request_str)
@@ -147,6 +150,7 @@ func (api_instance API_Interface) Add_server(request_str string) error {
 	return nil
 }
 
+//Sends a request to the wg broker to get the IP address to be used by a server within its wireguard session.
 func (api_instance API_Interface) Get_server_wg_ip(server_name string) (string, error) {
 	url := api_instance.API_Server_Address + "/api/v1/server/wireguard_ip/"
 	request_str := fmt.Sprintf("{ \"server_name\":\"%s\" }", server_name)
@@ -164,6 +168,7 @@ func (api_instance API_Interface) Get_server_wg_ip(server_name string) (string, 
 	return jso.Wg_ip, nil
 }
 
+//Sends a request to the wg broker to get the IP address and public key of all clients registered to a server.
 func (api_instance API_Interface) Get_server_peers(server_name string) (Peers, error) {
 	url := api_instance.API_Server_Address + "/api/v1/server/config/"
 	request_str := fmt.Sprintf("{ \"server_name\":\"%s\" }", server_name)
@@ -195,6 +200,7 @@ func (api_instance API_Interface) Get_server_peers(server_name string) (Peers, e
 	return jso, nil
 }
 
+//Sends a request to the wg broker api asking if a server is currently registered.
 func (api_instance API_Interface) Get_server_existance(server_name string) (bool, error) {
 	url := api_instance.API_Server_Address + "/api/v1/server/exists/"
 	request_str := fmt.Sprintf("{ \"server_name\":\"%s\" }", server_name)
@@ -208,6 +214,7 @@ func (api_instance API_Interface) Get_server_existance(server_name string) (bool
 	}
 }
 
+//Code for the generic part of each request made to the wg api server.
 func (api_instance API_Interface) submit_api_request(http_method, url, request_str string) ([]byte, int, error) {
 
 	req, http_error := http.NewRequest(http_method, url, bytes.NewBuffer([]byte(request_str)))

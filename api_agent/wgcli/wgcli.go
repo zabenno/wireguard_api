@@ -26,6 +26,7 @@ func New() (Wg_Cli, error) {
 	return Wg_Cli{wireguard_path, wireguard_quick_path}, nil
 }
 
+//Ensure the wireguard interface exists.
 func (cli Wg_Cli) Create_interface(server_name string) error {
 	command := exec.Command(cli.wgquick_command_path, "up", fmt.Sprintf("/etc/wireguard/%s.conf", server_name))
 	_, interface_error := command.CombinedOutput()
