@@ -49,7 +49,7 @@ def return_servers_list():
 @auth_required
 def return_server_conf():
     content = request.json
-    response = wireguard_state.get_server_config(content['server_name']), 200
+    response = wireguard_state.get_server_config(content['server_name'])
     if response == None:
         return "", 404
     elif response == {}:
