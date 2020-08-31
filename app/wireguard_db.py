@@ -364,7 +364,7 @@ class Wireguard_database():
 
         #Return first IP address not in use
         for ipaddr in subnet.hosts():
-            ipaddr_str = str(ipaddr)
+            ipaddr_str = (str(ipaddr),)
             ipaddr = ipaddress.ip_address(ipaddr)
             if not ipaddr_str in taken_ips and ipaddr > subnet[n_reserved_ips] and ipaddr != subnet[-1]:
                 return ipaddr_str
