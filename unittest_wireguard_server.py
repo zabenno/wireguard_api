@@ -67,6 +67,33 @@ class unittest_wireguard_server(unittest.TestCase):
         wireguard_state.delete_server("wireguard01")
         self.assertEqual(expected_result, result)
 
+    def test_server_config_expected_multi(self):
+        expected_result = { 
+            "peers": [
+                { 
+                    "ip_address": "192.168.2.21",
+                    "public_key": "gjXsuVSwfiqiZkf/rcEV8KszlTF4BseS4zY6dnKjCXc="
+                },
+                { 
+                    "ip_address": "192.168.2.22",
+                    "public_key": "xjXsuVSwfiqiZkf/rcEV8KszlTF4BseS4zY6dnKjCXc="
+                },
+                { 
+                    "ip_address": "192.168.2.23",
+                    "public_key": "zjXsuVSwfiqiZkf/rcEV8KszlTF4BseS4zY6dnKjCXc="
+                }
+            ]
+        }
+
+        wireguard_state = Wireguard_database()
+        wireguard_state.create_server("wireguard01", "192.168.2.0", 24, "gjXnuVSwfiqiZkf/rcEV8KczlTF4BseS4zY6dnKjCXc=", "192.168.2.55", 5128, 20, "192.168.2.0/32")
+        wireguard_state.create_client("testclient1", "wireguard01", "gjXsuVSwfiqiZkf/rcEV8KszlTF4BseS4zY6dnKjCXc=")
+        wireguard_state.create_client("testclient2", "wireguard01", "xjXsuVSwfiqiZkf/rcEV8KszlTF4BseS4zY6dnKjCXc=")
+        wireguard_state.create_client("testclient3", "wireguard01", "zjXsuVSwfiqiZkf/rcEV8KszlTF4BseS4zY6dnKjCXc=")
+        result = wireguard_state.get_server_config("wireguard01")
+        wireguard_state.delete_server("wireguard01")
+        self.assertEqual(expected_result, result)
+
     def test_server_config_no_peers(self):
         wireguard_state = Wireguard_database()
         wireguard_state.create_server("wireguard01", "192.168.2.0", 24, "gjXnuVSwfiqiZkf/rcEV8KczlTF4BseS4zY6dnKjCXc=", "192.168.2.55", 5128, 20, "192.168.2.0/32")
