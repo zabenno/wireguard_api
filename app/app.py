@@ -2,6 +2,7 @@ from flask import Flask, jsonify, render_template, request
 from wireguard_db import Wireguard_database
 from waitress import serve
 from functools import wraps
+from time import sleep
 import os, logging
 
 #Import Database and API server creds from environment variables.
@@ -15,11 +16,15 @@ api_username = os.environ.get('API_USER')
 with open(os.environ.get('API_PASSWORD_PATH'),'r') as api_password_file:
     api_password = api_password_file.read()
 
-try:
-    wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
-except (Exception) as error:
-    logging.fatal("An error occured while connecting to the database.")
-    os._exit(1)
+wireguard_state = None
+
+while wireguard_state == None:
+    try:
+        wireguard_state = Wireguard_database(db_server=server, db_port=port, db_database=database, db_user=db_user,db_password=db_password)
+    except (Exception) as error:
+        logging.error("An error occured while connecting to the database.")
+    if wireguard_state == None:
+        sleep(5)
 
 app = Flask(__name__)
 
